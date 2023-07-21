@@ -1,3 +1,19 @@
+//	Copyright 2023 Dremio Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package stress is the runtime that coordinates threads to cap load to the max-concurrency
+// it also has to orchestrate passing queries from the query generator to the protocol engine
 package stress
 
 import (
@@ -12,8 +28,8 @@ import (
 
 func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGenerator, args conf.StressArgs) error {
 
-	// Create channel for jobs
-	jobs := make(chan []string)
+	// Create channel for queriesChan
+	queriesChan := make(chan []string)
 
 	// Number of workers (concurrency limit)
 	maxConcurrency := args.MaxConcurrency
@@ -24,7 +40,7 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGe
 	// Start the workers
 	for i := 1; i <= maxConcurrency; i++ {
 		wg.Add(1)
-		go processor(i, verbose, protocolEngine, jobs, &wg)
+		go processor(i, verbose, protocolEngine, queriesChan, &wg)
 	}
 
 	// Set the maximum duration for generating queries (e.g., 5 seconds)
@@ -33,23 +49,23 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGe
 	go func() {
 		startTime := time.Now()
 
-		// Generate and send strings to the jobs channel until the maximum duration is reached
+		// Generate and send strings to the queries channel until the maximum duration is reached
 		for {
 			elapsed := time.Since(startTime)
 			if elapsed >= maxDuration {
 				break // Break the loop if the maximum duration is reached
 			}
 
-			job, err := queryGen.Query()
+			queries, err := queryGen.Queries()
 			if err != nil {
 				log.Printf("ERROR: unable to get queries: %v", err)
 			}
-			if len(job) == 0 {
+			if len(queries) == 0 {
 				break // Break the loop if there are no more strings to generate
 			}
-			jobs <- job
+			queriesChan <- queries
 		}
-		close(jobs) // Close the jobs channel when all strings are sent
+		close(queriesChan) // Close the queries channel when all strings are sent
 	}()
 
 	// Wait for all workers to finish processing

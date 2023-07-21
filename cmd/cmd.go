@@ -1,3 +1,17 @@
+//  Copyright 2023 Dremio Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
@@ -57,14 +71,10 @@ func ParseArgs() (conf.Args, error) {
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 5,
-      "start": [
-        "2018-02-04",
-        "2018-02-05"
-      ],
-      "end": [
-        "2018-02-14",
-        "2018-02-15"
-      ]
+      "parameters: {
+        "start": ["2018-02-04","2018-02-05"],
+        "end": ["2018-02-14","2018-02-15"]
+      }
     }
   ]
 }
@@ -89,14 +99,10 @@ func ParseArgs() (conf.Args, error) {
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 9,
-      "start": [
-        "2018-02-04",
-        "2018-02-05"
-      ],
-      "end": [
-        "2018-02-14",
-        "2018-02-15"
-      ]
+      "parameters" :{
+          "start": ["2018-02-04", "2018-02-05"],
+          "end": ["2018-02-14","2018-02-15"]
+      }
     }
   ]
 }
@@ -116,7 +122,7 @@ func ParseArgs() (conf.Args, error) {
 		StressArgs: conf.StressArgs{
 			Duration:       *duration,
 			MaxConcurrency: *maxConcurrency,
-			YAMLConfigPath: *jsonConfigPath,
+			JSONConfigPath: *jsonConfigPath,
 		},
 		Protocol: protocolMethod,
 		Verbose:  *verbose,
@@ -132,7 +138,7 @@ func Execute(args conf.Args) error {
 	case conf.ODBC:
 		protocolEngine = protocol.NewODBCEngine(args.ProtocolArgs)
 	}
-	stressConf, err := conf.ParseStressJson(args.StressArgs.YAMLConfigPath)
+	stressConf, err := conf.ParseStressJson(args.StressArgs.JSONConfigPath)
 	if err != nil {
 		return err
 	}
