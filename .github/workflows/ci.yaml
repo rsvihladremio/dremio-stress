@@ -1,0 +1,32 @@
+name: CI Workflow
+
+on: [push]
+
+jobs:
+  build-and-run:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build and Setup
+      run: |
+        docker run -v $PWD:/app -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
+            mkdir build && \
+            cd build && \
+            dnf -y install wget unixODBC unixODBC-devel go && \
+            wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
+            dnf -y install ./arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
+            cd /usr/lib64/ && \
+            ln -s libodbcinst.so.2.0.0 libodbcinst.so.1 && \
+            ln -s libodbc.so.2.0.0 libodbc.so.1 && \
+            ldconfig"
+
+    - name: Run scripts
+      run: |
+        docker run -v $PWD:/app -w /app fedora:38 /bin/bash -c "\
+            ./script/test && \
+            ./script/lint && \
+            ./script/build"

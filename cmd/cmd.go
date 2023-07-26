@@ -17,6 +17,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -46,19 +47,15 @@ func ParseArgs() (conf.Args, error) {
 	duration := flag.Duration("duration-seconds", 10*time.Minute, "duration of dremio-stress run")
 	user := flag.String("user", "dremio", "user to use at login")
 	password := flag.String("password", "dremio123", "password to use at login")
-	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-method http' or a odbc connection string for '-method odbc'")
+	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc'")
 	protocolResult := flag.String("protocol", "http", "communication protocol to use for stress http or odbc are available")
-	protocolMethod, err := ParseProtocol(*protocolResult)
-	if err != nil {
-		return conf.Args{}, err
-	}
+
 	verbose := flag.Bool("v", false, "add more verbose output")
-	skipSSL := flag.Bool("skip-ssl", false, "works with '-method http' when using https")
+	skipSSL := flag.Bool("skip-ssl", false, "works with '-protocol http' when using https")
 	jsonConfigPath := flag.String("conf", "stress.json", "location of the stress.json to define the stress job. If one is not provided a default stress job is used")
 
 	//Set usage output
 	flag.Usage = func() {
-		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, `## stress.json examples:
    
 ### Two queries will end up at more or less at 50%% usage each
@@ -107,10 +104,19 @@ func ParseArgs() (conf.Args, error) {
   ]
 }
 
+Usage with http: 
+	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
+Usage with odbc (using new Arrow Flight driver): 
+	dremio-stress -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC DSN};ConnectionType=Direct;AuthenticationType=Plain;"  -conf ./stress.json
 `)
 
+		flag.PrintDefaults()
 	}
 	flag.Parse()
+	protocolMethod, err := ParseProtocol(*protocolResult)
+	if err != nil {
+		return conf.Args{}, err
+	}
 	return conf.Args{
 		ProtocolArgs: conf.ProtocolArgs{
 			User:     *user,
@@ -132,13 +138,35 @@ func ParseArgs() (conf.Args, error) {
 // Execute is the entry point function after the args have been parsed.
 func Execute(args conf.Args) error {
 	var protocolEngine protocol.Engine
+	var err error
+	var selectedEngine string
 	switch args.Protocol {
 	case conf.HTTP:
-		protocolEngine = protocol.NewHTTPEngine(args.ProtocolArgs)
+		selectedEngine = "HTTP"
+		protocolEngine, err = protocol.NewHTTPEngine(args.ProtocolArgs)
+		if err != nil {
+			return fmt.Errorf("unable to initialize HTTP protocol engine: %w", err)
+		}
+		break
 	case conf.ODBC:
-		protocolEngine = protocol.NewODBCEngine(args.ProtocolArgs)
+		selectedEngine = "ODBC"
+		protocolEngine, err = protocol.NewODBCEngine(args.ProtocolArgs)
+		if err != nil {
+			return fmt.Errorf("unable to initialize ODBC protocol engine: %w", err)
+		}
+		break
 	}
-	stressConf, err := conf.ParseStressJson(args.StressArgs.JSONConfigPath)
+	defer func() {
+		if err := protocolEngine.Close(); err != nil {
+			log.Printf("WARN: unable to close protocol engine '%v' due to %v", selectedEngine, err)
+		}
+	}()
+
+	jsonText, err := os.ReadFile(args.StressArgs.JSONConfigPath)
+	if err != nil {
+		return err
+	}
+	stressConf, err := conf.ParseStressJson(string(jsonText))
 	if err != nil {
 		return err
 	}
