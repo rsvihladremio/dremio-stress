@@ -7,6 +7,16 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      docker:
+        image: docker:dind
+      options: --privileged
+        dremio:
+          image: docker pull ghcr.io/rsvihladremio/dremio-oss-test-image:latest
+            ports:
+              - 9047:9047
+              - 32010:32010
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
