@@ -82,7 +82,11 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
 		var err error
-		baseURL = fmt.Sprintf("http://localhost:%d", port)
+		host := os.Getenv("DREMIO_SERVER_TEST_URL")
+		if host == "" {
+			host = "localhost"
+		}
+		baseURL = fmt.Sprintf("http://%v:%d", host, port)
 		jsonBody := []byte(`{"userName": "dremio", "password":"dremio123"}`)
 		bodyReader := bytes.NewReader(jsonBody)
 		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/apiv2/login", baseURL), bodyReader)

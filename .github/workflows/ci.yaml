@@ -7,10 +7,27 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      dremio:
+        image: dremio/dremio-oss
+        ports:
+          - 9047:9047
+          - 32010:32010
+        options: >-
+          -v ${{ github.workspace }}/pkg/protocol/testdata/dremio.conf:/opt/dremio/conf/dremio.conf
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
+    - name: Wait for Dremio service
+        run: |
+          for i in {1..90}; do
+            if nc -z localhost 9047; then
+              echo "Dremio service is up"
+              break
+            fi
+            echo "Waiting for Dremio service..."
+            sleep 1
+          done
     - name: Build, Setup and Run
       run: |
         docker run -v $PWD:/app -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
@@ -25,3 +42,5 @@ jobs:
             ./script/test && \
             ./script/lint && \
             ./script/build"
+      env:
+        DREMIO_SERVER_TEST_URL: "dremio"
