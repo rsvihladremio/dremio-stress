@@ -17,17 +17,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Wait for Dremio service
-      run: |
-          for i in {1..90}; do
-            if nc -z localhost 9047; then
-              echo "Dremio service is up"
-              break
-            fi
-            echo "Waiting for Dremio service..."
-            sleep 1
-          done
-
     - name: Build, Setup and Run
       run: |
         docker run -v $PWD:/app -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
