@@ -7,17 +7,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    services:
-      dremio:
-        image: dremio/dremio-oss
-        ports:
-          - 9047:9047
-          - 32010:32010
-        options: >-
-          -v ${{ github.workspace }}/pkg/protocol/testdata/dremio.conf:/opt/dremio/conf/dremio.conf
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+
+    - name: Start Dremio service
+      run: |
+        docker run -d --name=dremio -p 9047:9047 -p 32010:32010 -v ${{ github.workspace }}/pkg/protocol/testdata/dremio.conf:/opt/dremio/conf/dremio.conf dremio/dremio-oss
 
     - name: Wait for Dremio service
       run: |
