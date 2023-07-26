@@ -2,6 +2,8 @@ FROM --platform=linux/amd64 fedora:38
 
 WORKDIR /app
 
+COPY . .
+
 RUN mkdir build &&  \
     cd build && \
     yum install -y wget unixODBC unixODBC-devel go && \
@@ -14,10 +16,11 @@ RUN mkdir build &&  \
     ldconfig && \
     cd /app && \
     yum remove -y wget && \
-    rm -fr build
-
-COPY . .
-
-RUN go build -o /usr/bin/dremio-stress . && yum remove -y wget go && rm -fr /app && yum clean all && rm -rf /var/cache/yum
+    rm -fr build && \
+    go build -o /usr/bin/dremio-stress . && \
+    yum remove -y wget go && \
+    yum clean all && \
+    rm -rf /var/cache/yum && \
+    rm -fr /app
 
 ENTRYPOINT ["/usr/bin/dremio-stress"]
