@@ -13,7 +13,7 @@ jobs:
           DOCKER_TLS_CERTDIR: /certs
         ports:
           - 2375:2375
-        options: --privileged --network=host
+        options: --privileged 
 
     steps:
     - name: Checkout code
