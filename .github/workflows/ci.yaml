@@ -9,7 +9,7 @@ jobs:
 
     services:
       dind:
-        image: docker:23.0-rc-dind-rootless
+        image: docker:24.0.5-dind-rootless
         ports:
           - 2375:2375
 
