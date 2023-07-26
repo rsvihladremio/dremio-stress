@@ -24,7 +24,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,26 +49,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Could not connect to Docker: %s", err)
 	}
-	confPath, err := filepath.Abs(filepath.Join("testdata", "dremio.conf"))
-	if err != nil {
-		log.Fatalf("Could not get Abs of dremio.conf: %s", err)
-	}
-
 	// pulls an image, creates a container based on it and runs it
 	resource, err := pool.RunWithOptions(
 		&dockertest.RunOptions{
-			Repository:   "dremio/dremio-oss",
-			Tag:          "24.1.0",
+			Repository:   "ghcr.io/rsvihladremio/dremio-oss-test-image",
+			Tag:          "latest",
 			ExposedPorts: []string{"9047"},
 		}, func(config *docker.HostConfig) {
 			config.AutoRemove = true
-			config.Mounts = []docker.HostMount{
-				{
-					Target: "/opt/dremio/conf/dremio.conf",
-					Source: confPath,
-					Type:   "bind",
-				},
-			}
 		})
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
@@ -82,10 +69,7 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
 		var err error
-		host := os.Getenv("DREMIO_SERVER_TEST_URL")
-		if host == "" {
-			host = "localhost"
-		}
+		host := "localhost"
 		baseURL = fmt.Sprintf("http://%v:%d", host, port)
 		jsonBody := []byte(`{"userName": "dremio", "password":"dremio123"}`)
 		bodyReader := bytes.NewReader(jsonBody)

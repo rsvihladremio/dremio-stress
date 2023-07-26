@@ -1,4 +1,5 @@
 #!/bin/sh
 
 export GOARCH=amd64
-go test -race -cover ./...
+go test -race -cover -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out

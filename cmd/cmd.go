@@ -28,6 +28,26 @@ import (
 	"github.com/rsvihladremio/dremio-stress/pkg/stress"
 )
 
+// FileReader is an interface that declares the ReadFile method. It's used to abstract away the actual
+// mechanism for reading a file, so that different implementations can be swapped in without changing the code
+// that uses this interface. This is particularly useful in testing, where we can replace actual file operations
+// with a mock.
+type FileReader interface {
+	ReadFile(filename string) ([]byte, error)
+}
+
+// OsFileReader is the real-world implementation of the FileReader interface. This uses os.ReadFile
+// method from the Go's standard library to read the contents of a file. It's used when the application runs
+// in the production environment.
+type OsFileReader struct{}
+
+// Using the os.ReadFile function from the Go standard library to read a file. This function returns
+// the contents of the file as a byte slice and an error. If the file read operation was successful,
+// the error will be nil.
+func (o OsFileReader) ReadFile(filename string) ([]byte, error) {
+	return os.ReadFile(filename)
+}
+
 // ParseProtocol will convert a string to a AccessMethod type
 func ParseProtocol(method string) (conf.Protocol, error) {
 	switch strings.ToLower(method) {
@@ -135,34 +155,56 @@ Usage with odbc (using new Arrow Flight driver):
 	}, nil
 }
 
-// Execute is the entry point function after the args have been parsed.
+// Execute is the entry point function after the args have been parsed
 func Execute(args conf.Args) error {
-	var protocolEngine protocol.Engine
-	var err error
-	var selectedEngine string
+	engine, err := GetEngine(args)
+	if err != nil {
+		return err
+	}
+	return ExecuteWithEngine(args, engine, OsFileReader{})
+}
+
+// GetEngine is a function which returns a specific protocol engine
+// based on the protocol specified in the passed configuration arguments.
+func GetEngine(args conf.Args) (protocol.Engine, error) {
+	// Check if the protocol in the configuration arguments is HTTP.
+	// If so, initialize the HTTP protocol engine.
 	switch args.Protocol {
 	case conf.HTTP:
-		selectedEngine = "HTTP"
-		protocolEngine, err = protocol.NewHTTPEngine(args.ProtocolArgs)
+		// Try to create a new HTTP protocol engine.
+		protocolEngine, err := protocol.NewHTTPEngine(args.ProtocolArgs)
 		if err != nil {
-			return fmt.Errorf("unable to initialize HTTP protocol engine: %w", err)
+			// If there was an error creating the HTTP protocol engine, return an error.
+			return nil, fmt.Errorf("unable to initialize HTTP protocol engine: %w", err)
 		}
-		break
+		// Return the created HTTP protocol engine.
+		return protocolEngine, nil
 	case conf.ODBC:
-		selectedEngine = "ODBC"
-		protocolEngine, err = protocol.NewODBCEngine(args.ProtocolArgs)
+		// If the protocol is not HTTP, check if it is ODBC.
+		// If so, initialize the ODBC protocol engine.
+		protocolEngine, err := protocol.NewODBCEngine(args.ProtocolArgs)
 		if err != nil {
-			return fmt.Errorf("unable to initialize ODBC protocol engine: %w", err)
+			// If there was an error creating the ODBC protocol engine, return an error.
+			return nil, fmt.Errorf("unable to initialize ODBC protocol engine: %w", err)
 		}
-		break
+		// Return the created ODBC protocol engine.
+		return protocolEngine, nil
 	}
+	// If the protocol is neither HTTP nor ODBC, return an error.
+	return nil, fmt.Errorf("unknown protocol %v", args.Protocol)
+}
+
+// ExecuteWithEngine is the entry point function after the args have been parsed.
+func ExecuteWithEngine(args conf.Args, protocolEngine protocol.Engine, fileReader FileReader) (err error) {
+
 	defer func() {
 		if err := protocolEngine.Close(); err != nil {
-			log.Printf("WARN: unable to close protocol engine '%v' due to %v", selectedEngine, err)
+			log.Printf("WARN: unable to close protocol engine '%v' due to %v", protocolEngine.Name(), err)
 		}
 	}()
 
-	jsonText, err := os.ReadFile(args.StressArgs.JSONConfigPath)
+	//os.ReadFile(args.StressArgs.JSONConfigPath)
+	jsonText, err := fileReader.ReadFile(args.StressArgs.JSONConfigPath)
 	if err != nil {
 		return err
 	}

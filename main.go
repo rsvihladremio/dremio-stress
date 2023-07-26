@@ -14,6 +14,7 @@ func main() {
 		fmt.Printf("error parsing args: %+v\n", err)
 		os.Exit(1)
 	}
+
 	if err := cmd.Execute(args); err != nil {
 		fmt.Println(args)
 		fmt.Printf("error executing dremio-stress: %+v", err)

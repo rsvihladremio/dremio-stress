@@ -33,6 +33,7 @@ import (
 // Engine provides the interface for making remote calls to dremio via a given protocol
 type Engine interface {
 	Execute(string) error
+	Name() string
 	Close() error
 }
 
@@ -48,6 +49,11 @@ type HTTPProtocolEngine struct {
 // Close is no-op for the HTTPProtocolEngine and will always succeed
 func (h *HTTPProtocolEngine) Close() error {
 	return nil
+}
+
+// Name of the protocol
+func (h *HTTPProtocolEngine) Name() string {
+	return "HTTP"
 }
 
 func (h *HTTPProtocolEngine) Execute(query string) error {
@@ -212,6 +218,11 @@ func (o *ODBCProtocolEngine) Execute(query string) error {
 // Close releases all resources related to the ODBC client connection
 func (o *ODBCProtocolEngine) Close() error {
 	return o.db.Close()
+}
+
+// Name of the protocol
+func (o *ODBCProtocolEngine) Name() string {
+	return "ODBC"
 }
 
 // NewODBCEngine creates a object capable of making calls using the Dremio ODBC API
