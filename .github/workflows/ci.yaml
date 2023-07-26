@@ -6,24 +6,13 @@ jobs:
   build-and-run:
 
     runs-on: ubuntu-latest
-    services:
-      dind:
-        image: docker:dind
-        env:
-          DOCKER_TLS_CERTDIR: /certs
-        ports:
-          - 2375:2375
-        options: --privileged 
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Build, Setup and Run
       run: |
-        export DOCKER_HOST=tcp://localhost:2375
-
-        docker run -v $PWD:/app -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
+        docker run -v $PWD:/app --rm -v /var/run/docker.sock:/var/run/docker.sock  -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
             dnf -y install wget unixODBC unixODBC-devel go && \
             wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
             dnf -y install ./arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
