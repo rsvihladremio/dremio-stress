@@ -31,5 +31,3 @@ jobs:
             ./script/test && \
             ./script/lint && \
             ./script/build"
-      env:
-        DOCKER_HOST: tcp://dind:2375
