@@ -10,7 +10,7 @@ dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf 
 
 ## Run via ODBC 
 
-NOTE: I HIGHLY suggest using the docker image to run this which already has unixODBC included and therefore will run on anything including the M series Mac with minimal fuss.
+NOTE: I HIGHLY suggest using the Docker image to run this which already has unixODBC included and therefore will run on anything including the M series Mac with minimal fuss.
 
 ### Run via Docker on Mac or Windows
 
@@ -18,7 +18,7 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
 docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
 ```
 
-### Running ODBC Directly
+### Run ODBC Directly With a Binary
 
 ```bash
 dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
@@ -28,15 +28,16 @@ dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arr
 
 NOTE: it is highly recommended to use the Docker option.
 
-To run this on an M series Mac (Apple Silicon) one needs to have unixODBC installed for Intel so do the following:
+To run this on an M series Mac (Apple Silicon) one needs to have UnixODBC installed for Intel so do the following:
 
 * run the shell in x86_64 mode `arch -x86_64 zsh`
-* install homebrew `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-* install unixodbc as `brew install unixodbc`
+* install Homebrew `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+* install UnixODBC as `brew install unixodbc`
+* install the Dremio ODBC driver
 
-# Example stress.json files
+## Example stress.json files
 
-## Two queries will end up at more or less at 50%% usage each
+### Two queries will end up at more or less at 50% usage each
 
 ```json
 {
@@ -58,7 +59,7 @@ To run this on an M series Mac (Apple Silicon) one needs to have unixODBC instal
 ```
 
 
-## Using queryGroups to preform several ops in order, schemops will be called roughly 10%% of the time
+### Using queryGroups to preform several ops in order, the "schemops" group  will be called roughly 10% of the time
 
 ```json
 {
@@ -90,7 +91,7 @@ To run this on an M series Mac (Apple Silicon) one needs to have unixODBC instal
 ```
 
 
-# Flags
+## Flags
 
 ```bash
   -conf string
