@@ -17,6 +17,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Build, Setup
+      run: |
             sudo apt -y install docker.io wget unixodbc unixodbc-dev odbcinst alien golang
             wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
             alien --scripts $(ls arrow-flight-sql-odbc-driver*) 
