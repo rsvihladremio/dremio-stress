@@ -20,8 +20,8 @@ jobs:
       run: |
             sudo apt -y install wget unixodbc unixodbc-dev odbcinst alien golang
             wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
-            sudo alien --scripts $(ls arrow-flight-sql-odbc-driver*) 
-            sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*)
+            sudo alien --scripts $(ls arrow-flight-sql-odbc-driver*) 2> /dev/null
+            sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*) 2> /dev/null
 
     - name: Verify build
       run: ./script/build
