@@ -1,8 +1,0 @@
-builds:
-  - id: 'dremio-stress'
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
