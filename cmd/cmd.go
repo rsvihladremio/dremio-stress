@@ -141,10 +141,6 @@ Usage with docker image on Mac or Windows against a localhost dremio - (all depe
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	if flag.NArg() == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
 	protocolMethod, err := ParseProtocol(*protocolResult)
 	if err != nil {
 		return conf.Args{}, err
