@@ -5,6 +5,12 @@ on: [push]
 jobs:
   build-and-run:
 
+    services:
+      dind:
+        image: docker:dind-rootless
+        ports:
+          - 2375:2375
+
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -12,15 +18,10 @@ jobs:
 
     - name: Build, Setup and Run
       run: |
-        docker run -v $PWD:/app --rm -v /var/run/docker.sock:/var/run/docker.sock  -w /app --platform=linux/amd64 fedora:38 /bin/bash -c "\
-            dnf -y install wget unixODBC unixODBC-devel go && \
-            wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
-            dnf -y install ./arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
-            cd /usr/lib64/ && \
-            ln -s libodbcinst.so.2.0.0 libodbcinst.so.1 && \
-            ln -s libodbc.so.2.0.0 libodbc.so.1 && \
-            ldconfig && \
-            cd /app && \
-            ./script/test && \
-            ./script/lint && \
-            ./script/build"
+            apt -y install docker.io wget unixodbc unixodbc-dev odbcinst alien golang
+            wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
+            alien --scripts $(ls arrow-flight-sql-odbc-driver*) 
+            dpkg -i $(ls arrow-flight-sql-odbc-driver*)
+            ./script/test
+            ./script/lint
+            ./script/build
