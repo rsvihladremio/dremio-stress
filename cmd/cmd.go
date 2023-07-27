@@ -102,9 +102,9 @@ func ParseArgs() (conf.Args, error) {
     {
       "name": "schemaops",
       "queries": [
-        "drop table if exits samples.\"samples.dremio.com\".\"nyc-taxi-trips\"",
-        "create table samples.\"samples.dremio.com\".\"nyc-taxi-trips\" STORE AS (type => 'iceberg') AS SELECT (\"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\"))",
-        "select * from  samples.\"samples.dremio.com\".\"nyc-taxi-trips\""
+        "drop table if exists samples.\"samples.dremio.com\".\"A\"",
+        "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT (\"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\"))",
+        "select * from  samples.\"samples.dremio.com\".\"A\""
       ]
     }
   ],
@@ -211,7 +211,6 @@ func ExecuteWithEngine(args conf.Args, protocolEngine protocol.Engine, fileReade
 		}
 	}()
 
-	//os.ReadFile(args.StressArgs.JSONConfigPath)
 	jsonText, err := fileReader.ReadFile(args.StressArgs.JSONConfigPath)
 	if err != nil {
 		return err
