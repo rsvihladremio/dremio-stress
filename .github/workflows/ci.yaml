@@ -18,7 +18,7 @@ jobs:
 
     - name: Build, Setup
       run: |
-            sudo apt -y install docker.io wget unixodbc unixodbc-dev odbcinst alien golang
+            sudo apt -y install wget unixodbc unixodbc-dev odbcinst alien golang
             wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
             alien --scripts $(ls arrow-flight-sql-odbc-driver*) 
             sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*)
