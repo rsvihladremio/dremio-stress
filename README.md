@@ -7,8 +7,7 @@ Simple tool to stress Dremio via ODBC and REST interfaces
 ## Via the REST interface
 
 ```bash
-
-	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
+dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
 ```
 
 ## Via ODBC 
@@ -18,13 +17,13 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
 ### Via Docker on Mac or Windows
 
 ```bash
-	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
 ```
 
 ### Directly
 
 ```bash
-	dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
+dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
 ```
 
 
@@ -42,7 +41,7 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 5,
-      "parameters: {
+      "parameters": {
         "start": ["2018-02-04","2018-02-05"],
         "end": ["2018-02-14","2018-02-15"]
       }
@@ -74,7 +73,7 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 9,
-      "parameters" :{
+      "parameters": {
           "start": ["2018-02-04", "2018-02-05"],
           "end": ["2018-02-14","2018-02-15"]
       }
