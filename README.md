@@ -115,7 +115,7 @@ To run this on an M series Mac (Apple Silicon) one needs to have UnixODBC instal
   -v	add more verbose output
 ```
 
-# Running Tests
+## Running Tests
 
 * Install docker or have it running
 * ./script/test
