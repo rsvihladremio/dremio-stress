@@ -88,7 +88,7 @@ func ParseArgs() (conf.Args, error) {
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 5,
-      "parameters: {
+      "parameters": {
         "start": ["2018-02-04","2018-02-05"],
         "end": ["2018-02-14","2018-02-15"]
       }
@@ -116,7 +116,7 @@ func ParseArgs() (conf.Args, error) {
     {
       "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
       "frequency": 9,
-      "parameters" :{
+      "parameters": {
           "start": ["2018-02-04", "2018-02-05"],
           "end": ["2018-02-14","2018-02-15"]
       }
