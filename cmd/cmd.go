@@ -63,8 +63,8 @@ func ParseProtocol(method string) (conf.Protocol, error) {
 // ParseArgs will attempt to read the args from flags passed to the cli. It also does validation of the arguments
 func ParseArgs() (conf.Args, error) {
 	maxConcurrency := flag.Int("max-concurrency", 4, "max number of concurrent queries")
-	timeout := flag.Duration("timeout-seconds", 60*time.Second, "default timeout for queries")
-	duration := flag.Duration("duration-seconds", 10*time.Minute, "duration of dremio-stress run")
+	timeout := flag.Duration("timeout", 60*time.Second, "default timeout for queries")
+	duration := flag.Duration("duration", 10*time.Minute, "duration of dremio-stress run")
 	user := flag.String("user", "dremio", "user to use at login")
 	password := flag.String("password", "dremio123", "password to use at login")
 	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc'")
@@ -103,7 +103,7 @@ func ParseArgs() (conf.Args, error) {
       "name": "schemaops",
       "queries": [
         "drop table if exists samples.\"samples.dremio.com\".\"A\"",
-        "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT (\"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\"))",
+        "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
         "select * from  samples.\"samples.dremio.com\".\"A\""
       ]
     }
