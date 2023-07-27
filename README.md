@@ -6,9 +6,10 @@ Simple tool to stress Dremio via ODBC and REST interfaces
 
 ## Via the REST interface
 
-```
-	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
 ```bash
+
+	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
+```
 
 ## Via ODBC 
 
@@ -16,22 +17,22 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
 
 ### Via Docker on Mac or Windows
 
-```
-	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
 ```bash
+	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
+```
 
 ### Directly
 
-```
-	dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
 ```bash
+	dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
+```
 
 
 # Example stress.json files
 
 ## Two queries will end up at more or less at 50%% usage each
 
-```
+```json
 {
   "queries": [
     {
@@ -48,12 +49,12 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
     }
   ]
 }
-```json
+```
 
 
 ## Using queryGroups to preform several ops in order, schemops will be called roughly 10%% of the time
 
-```
+```json
 {
   "queryGroups": [
     {
@@ -80,12 +81,12 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
     }
   ]
 }
-```json
+```
 
 
 # Flags
 
-```
+```bash
   -conf string
     	location of the stress.json to define the stress job. If one is not provided a default stress job is used (default "stress.json")
   -duration duration
@@ -105,7 +106,7 @@ NOTE: I HIGHLY suggest using the docker image to run this which already has unix
   -user string
     	user to use at login (default "dremio")
   -v	add more verbose output
-```bash
+```
 
 # Running Tests
 
