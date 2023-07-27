@@ -1,3 +1,4 @@
 #!/bin/sh
 
-go build . -o ./bin/dremio-stress
+export GOARCH=amd64
+go build -o ./bin/dremio-stress .

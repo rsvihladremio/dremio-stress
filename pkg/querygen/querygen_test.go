@@ -63,7 +63,7 @@ func TestQueryGenerationWithNoParamsAndUsingQueryGroup(t *testing.T) {
 		Queries: []conf.QueryConf{
 			{
 				QueryGroup: &expectedQueryGroupText,
-				Frequency: 1,
+				Frequency:  1,
 			},
 		},
 	}

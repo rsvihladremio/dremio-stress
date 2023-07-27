@@ -1,0 +1,34 @@
+name: CI Workflow
+
+on: [push]
+
+jobs:
+  build-and-run:
+
+    services:
+      dind:
+        image: docker:dind-rootless
+        ports:
+          - 2375:2375
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build, Setup
+      run: |
+            sudo apt -y install wget unixodbc unixodbc-dev odbcinst alien golang
+            wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
+            sudo alien --scripts $(ls arrow-flight-sql-odbc-driver*) || true
+            sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*) || true
+
+    - name: Verify build
+      run: ./script/build
+
+    - name: Run tests
+      run: ./script/test
+
+    - name: Run linting
+      run: ./script/lint
+    

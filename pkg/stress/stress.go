@@ -17,8 +17,10 @@
 package stress
 
 import (
+	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rsvihladremio/dremio-stress/pkg/conf"
@@ -46,8 +48,18 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGe
 	// Set the maximum duration for generating queries (e.g., 5 seconds)
 	maxDuration := args.Duration
 
+	var ops uint64
 	go func() {
 		startTime := time.Now()
+		go func() {
+			for range time.Tick(time.Second * 10) {
+				elapsed := time.Since(startTime)
+				if elapsed >= maxDuration {
+					break // Break the loop if the maximum duration is reached
+				}
+				fmt.Printf("%v queries submitted and %v seconds remaining\n", atomic.LoadUint64(&ops), int64((maxDuration - elapsed).Seconds()))
+			}
+		}()
 
 		// Generate and send strings to the queries channel until the maximum duration is reached
 		for {
@@ -64,6 +76,7 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGe
 				break // Break the loop if there are no more strings to generate
 			}
 			queriesChan <- queries
+			atomic.AddUint64(&ops, 1)
 		}
 		close(queriesChan) // Close the queries channel when all strings are sent
 	}()
