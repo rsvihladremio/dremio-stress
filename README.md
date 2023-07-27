@@ -2,30 +2,37 @@
 
 Simple tool to stress Dremio via ODBC and REST interfaces
 
-## Dependencies
-
-## Via the REST interface
+## Run via the REST interface
 
 ```bash
 dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
 ```
 
-## Via ODBC 
+## Run via ODBC 
 
 NOTE: I HIGHLY suggest using the docker image to run this which already has unixODBC included and therefore will run on anything including the M series Mac with minimal fuss.
 
-### Via Docker on Mac or Windows
+### Run via Docker on Mac or Windows
 
 ```bash
 docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
 ```
 
-### Directly
+### Running ODBC Directly
 
 ```bash
 dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
 ```
 
+#### Apple Silicon Mac Dependency Note
+
+NOTE: it is highly recommended to use the Docker option.
+
+To run this on an M series Mac (Apple Silicon) one needs to have unixODBC installed for Intel so do the following:
+
+* run the shell in x86_64 mode `arch -x86_64 zsh`
+* install homebrew `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+* install unixodbc as `brew install unixodbc`
 
 # Example stress.json files
 
