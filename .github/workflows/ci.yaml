@@ -16,12 +16,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Build, Setup and Run
-      run: |
-            apt -y install docker.io wget unixodbc unixodbc-dev odbcinst alien golang
+    - name: Build, Setup
+            sudo apt -y install docker.io wget unixodbc unixodbc-dev odbcinst alien golang
             wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
             alien --scripts $(ls arrow-flight-sql-odbc-driver*) 
-            dpkg -i $(ls arrow-flight-sql-odbc-driver*)
-            ./script/test
-            ./script/lint
-            ./script/build
+            sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*)
+
+    - name: Verify build
+      run: ./script/build
+
+    - name: Run tests
+      run: ./script/test
+
+    - name: Run linting
+      run: ./script/lint
+    
