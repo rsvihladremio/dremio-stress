@@ -125,9 +125,17 @@ func ParseArgs() (conf.Args, error) {
 }
 
 Usage with http: 
+
 	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
-Usage with odbc (using new Arrow Flight driver): 
-	dremio-stress -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC DSN};ConnectionType=Direct;AuthenticationType=Plain;"  -conf ./stress.json
+
+Usage with odbc (using new Arrow Flight driver, default install and unixodbc): 
+
+	dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
+
+Usage with docker image on Mac or Windows against a localhost dremio - (all dependencies bundled) 
+
+	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
+
 `)
 
 		flag.PrintDefaults()
