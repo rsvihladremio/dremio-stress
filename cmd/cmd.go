@@ -134,7 +134,7 @@ Usage with odbc (using new Arrow Flight driver, default install and unixodbc):
 
 Usage with docker image on Mac or Windows against a localhost dremio - (all dependencies bundled) 
 
-	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:merge -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
+	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress-protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
 
 `)
 

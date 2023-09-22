@@ -18,10 +18,16 @@ package querygen
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"strings"
 
 	"github.com/rsvihladremio/dremio-stress/pkg/conf"
 )
+
+type QueryWithParams struct {
+	QueryText  string
+	Parameters map[string][]interface{}
+}
 
 type QueryGenerator interface {
 	Queries() ([]string, error)
@@ -39,14 +45,52 @@ type ValidRange struct {
 
 type QueryMatcher struct {
 	Range     ValidRange
-	QueryList []string
+	QueryList []QueryWithParams
+}
+
+func pickParam(options []interface{}) interface{} {
+	pick := rand.Intn(len(options))
+	return options[pick]
+}
+
+func TokenMap(query string, replacements map[string][]interface{}) string {
+	// Create a regular expression pattern to match tokens (e.g., :my and :my_date)
+	pattern := `:(\w+)`
+
+	// Define a function to replace tokens with values
+	replaceFunc := func(match string) string {
+		// Extract the token (e.g., :my) from the match
+		token := strings.TrimPrefix(match, ":")
+
+		// Lookup the replacement value in the map
+		replacement, exists := replacements[token]
+
+		// If a replacement exists, return it; otherwise, return the original match
+		if exists {
+			pick := pickParam(replacement)
+			return fmt.Sprintf("%v", pick)
+		}
+		return match
+	}
+
+	// Use the regular expression to replace tokens with values
+	return regexp.MustCompile(pattern).ReplaceAllStringFunc(query, replaceFunc)
+
 }
 
 func (s *StressConfQueryGenerator) Queries() ([]string, error) {
 	pick := rand.Intn(s.totalFreq)
 	for _, q := range s.queries {
 		if pick >= q.Range.Min && pick < q.Range.NextNumber {
-			return q.QueryList, nil
+			var mappedSql []string
+			for _, query := range q.QueryList {
+				rawSql := query.QueryText
+				if len(query.Parameters) > 0 {
+					rawSql = TokenMap(rawSql, query.Parameters)
+				}
+				mappedSql = append(mappedSql, rawSql)
+			}
+			return mappedSql, nil
 		}
 	}
 
@@ -68,7 +112,7 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 			Min:        min,
 			NextNumber: nextNumber,
 		}
-		var sqls []string
+		var sqls []QueryWithParams
 		if q.QueryText == nil {
 			if q.QueryGroup != nil {
 				for _, group := range stressConf.QueryGroups {
@@ -76,14 +120,24 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 						if len(group.Queries) == 0 {
 							panic(fmt.Sprintf("invalid json: cannot have zero queries for query group %v", group.Name))
 						}
-						sqls = append(sqls, group.Queries...)
+						for _, groupQueryText := range group.Queries {
+							sqls = append(sqls, QueryWithParams{
+								QueryText:  groupQueryText,
+								Parameters: q.Parameters,
+							})
+						}
 					}
 				}
 			} else {
 				panic("neither \"queryGroup\" AND \"query\" are both empty, I cannot build a stress runtime from this json")
 			}
 		} else {
-			sqls = append(sqls, *q.QueryText)
+			text := *q.QueryText
+			params := q.Parameters
+			sqls = append(sqls, QueryWithParams{
+				QueryText:  text,
+				Parameters: params,
+			})
 		}
 		queries = append(queries, QueryMatcher{
 			Range:     r,
