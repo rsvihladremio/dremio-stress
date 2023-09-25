@@ -65,68 +65,45 @@ func ParseArgs() (args.Args, error) {
 
 	//Set usage output
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `## stress.json examples:
-   
-### Two queries will end up at more or less at 50%% usage each
-{
-  "queries": [
-    {
-      "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv LIMIT 50\"",
-      "frequency": 5
-    },
-    {
-      "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
-      "frequency": 5,
-      "parameters": {
-        "start": ["2018-02-04","2018-02-05"],
-        "end": ["2018-02-14","2018-02-15"]
-      }
-    }
-  ]
-}
+		fmt.Fprintf(os.Stderr, `dremio-stress %s %s-%s
 
-### Using queryGroups to preform several ops in order, "schema" will be called roughly 10%% of the time
-{
-  "queryGroups": [
+EXAMPLE stress.json:
+  
+    ## Using queryGroups to preform several ops in order, "schema" will be called roughly 10%% of the time.
+
     {
-      "name": "schema",
+      "queryGroups": [
+        {
+          "name": "schema",
+          "queries": [
+            "drop table if exists samples.\"samples.dremio.com\".\"A\"",
+            "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
+            "select * from  samples.\"samples.dremio.com\".\"A\""
+          ]
+        }
+      ],
       "queries": [
-        "drop table if exists samples.\"samples.dremio.com\".\"A\"",
-        "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
-        "select * from  samples.\"samples.dremio.com\".\"A\""
+        {
+          "queryGroup": "schema",
+          "frequency": 1
+        },
+        {
+          "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
+          "frequency": 9,
+          "parameters": {
+              "start": ["2018-02-04", "2018-02-05"],
+              "end": ["2018-02-14","2018-02-15"]
+          }
+        }
       ]
     }
-  ],
-  "queries": [
-    {
-      "queryGroup": "schema",
-      "frequency": 1
-    },
-    {
-      "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
-      "frequency": 9,
-      "parameters": {
-          "start": ["2018-02-04", "2018-02-05"],
-          "end": ["2018-02-14","2018-02-15"]
-      }
-    }
-  ]
-}
 
-Usage with http: 
-
-	dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
-
-Usage with odbc (using new Arrow Flight driver, default install and unixodbc): 
-
-	dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
-
-Usage with docker image on Mac or Windows against a localhost dremio - (all dependencies bundled) 
-
-	docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress-protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
-
-`)
-
+USAGE: 
+`, odbcDisabled, Version, GitSha)
+		for k, v := range examples {
+			fmt.Fprintf(os.Stderr, "%s:\n\n    %s\n\n", k, v)
+		}
+		fmt.Fprint(os.Stderr, "flags:\n\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -150,6 +127,7 @@ Usage with docker image on Mac or Windows against a localhost dremio - (all depe
 
 // Execute is the entry point function after the args have been parsed
 func Execute(args args.Args) error {
+	fmt.Fprintf(os.Stdout, "dremio-stress %s %s-%s\n", odbcDisabled, Version, GitSha)
 	engine, err := GetEngine(args)
 	if err != nil {
 		return err
@@ -189,4 +167,14 @@ func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReade
 	}
 	queryGen := gen.NewStressConfQueryGenerator(stressConf)
 	return stress.Run(args.Verbose, protocolEngine, queryGen, args.StressArgs)
+}
+
+var examples = make(map[string]string)
+var odbcDisabled = "odbc disabled"
+var GitSha = "unknown"
+var Version = "dev"
+
+func init() {
+	examples["Usage with http"] = "dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json"
+	examples["Usage with docker against a localhost dremio - (all dependencies bundled)"] = "docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress-protocol odbc -user dremio -password dremio123 -url \"Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false\"  -conf /mnt/stress.json"
 }

@@ -28,3 +28,7 @@ coverage.out
 
 # vscode files
 .vscode
+
+# mac directory files
+
+.DS_Store

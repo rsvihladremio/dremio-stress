@@ -10,9 +10,8 @@ dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf 
 
 ## Run via ODBC 
 
-NOTE: I HIGHLY suggest using the Docker image to run this which already has unixODBC included and therefore will run on anything including the M series Mac with minimal fuss.
 
-### Run via Docker on Mac or Windows
+### Run via Docker
 
 ```bash
 docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
@@ -20,20 +19,22 @@ docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress -protocol odbc
 
 ### Run ODBC Directly With a Binary
 
+#### Dependencies on Windows
+
+* Dremio ODBC Driver
+* X86\_64 (or AMD64) processor
+
+#### Dependencies on Mac and Linux
+
+* UnixODBC
+* Dremio ODBC Driver
+* X86\_64 (or AMD64) processor
+* Apple Silicon not supported use the Docker option
+
+
 ```bash
 dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
 ```
-
-#### Apple Silicon Mac Dependency Note
-
-NOTE: it is highly recommended to use the Docker option.
-
-To run this on an M series Mac (Apple Silicon) one needs to have UnixODBC installed for Intel so do the following:
-
-* run the shell in x86_64 mode `arch -x86_64 zsh`
-* install Homebrew `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-* install UnixODBC as `brew install unixodbc`
-* install the Dremio ODBC driver
 
 ## Example stress.json files
 

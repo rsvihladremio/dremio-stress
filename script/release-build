@@ -2,25 +2,32 @@
 
 set -e 
 
+# this is also set in script/build and is a copy paste
+GIT_SHA=`git rev-parse --short HEAD`
+VERSION=`git rev-parse --abbrev-ref HEAD`
+LDFLAGS="-X github.com/rsvihladremio/dremio-stress/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/dremio-stress/cmd.Version=$VERSION"
+
 # cross compile seems to work fine against windows odbc
 echo "building windows on amd64" 
-GOOS=${item} GOARCH=amd64 /usr/local/bin/go build -tags=odbc -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-windows-amd64.zip ./bin/dremio-stress
+GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -tags=odbc -o ./bin/dremio-stress.exe . && zip -j ./bin/dremio-stress-windows-amd64.zip ./bin/dremio-stress.exe
+echo "building windows on arm64" 
+GOOS=windows GOARCH=arm64 go build -ldflags "$LDFLAGS" -o ./bin/dremio-stress.exe . && zip -j ./bin/dremio-stress-windows-arm64.zip ./bin/dremio-stress.exe
 
 OS="`uname`"
 case $OS in
   'Linux')
     echo "building linux on amd64" 
     ## try compiling on linux if present, if on arm64 need to have a amd64 toolchain setup with go and unixodbc in that environment
-    GOOS=linux GOARCH=amd64 /usr/local/bin/go build -tags=odbc -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-linux-amd64.zip ./bin/dremio-stress
+    GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -tags=odbc -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-linux-amd64.zip ./bin/dremio-stress
     ;;
   'Darwin') 
     echo "building mac on amd64" 
     ## try cross compiling on mac, need to have homebrew setup in amd64 for arm64 macs
-    GOOS=darwin GOARCH=amd64 /usr/local/bin/go build -tags=odbc -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-darwin-amd64.zip ./bin/dremio-stress
+    GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -tags=odbc -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-darwin-amd64.zip ./bin/dremio-stress
     ;;
   *) ;;
 esac
 
 # cross compile works fine if odbc is disabled
-set -- linux darwin windows
-for item in "$@"; do echo "building ${item} on arm64 with odbc disabled" &&  GOOS=${item} GOARCH=arm64 /usr/local/go/bin/go build -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-$item-arm64.zip ./bin/dremio-stress; done
+set -- linux darwin 
+for item in "$@"; do echo "building ${item} on arm64 with odbc disabled" &&  GOOS=${item} GOARCH=arm64 go build -ldflags "$LDFLAGS"  -o ./bin/dremio-stress . && zip -j ./bin/dremio-stress-$item-arm64.zip ./bin/dremio-stress; done
