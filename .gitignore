@@ -20,7 +20,15 @@
 # Go workspace file
 go.work
 
-# ignore the main exec
+# ignore the binaries folder
+/bin
 
-dremio-stress
+# code coverage output file that is often left behind
 coverage.out
+
+# vscode files
+.vscode
+
+# mac directory files
+
+.DS_Store

@@ -23,12 +23,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rsvihladremio/dremio-stress/pkg/conf"
+	"github.com/rsvihladremio/dremio-stress/pkg/args"
+	"github.com/rsvihladremio/dremio-stress/pkg/gen"
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
-	"github.com/rsvihladremio/dremio-stress/pkg/querygen"
 )
 
-func Run(verbose bool, protocolEngine protocol.Engine, queryGen querygen.QueryGenerator, args conf.StressArgs) error {
+func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
 
 	// Create channel for queriesChan
 	queriesChan := make(chan []string)

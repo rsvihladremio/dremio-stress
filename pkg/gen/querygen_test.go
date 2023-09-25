@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package querygen_test validates the querygen package
-package querygen_test
+// package gen_test validates the gen package
+package gen_test
 
 import (
 	"testing"
 
 	"github.com/rsvihladremio/dremio-stress/pkg/conf"
-	"github.com/rsvihladremio/dremio-stress/pkg/querygen"
+	"github.com/rsvihladremio/dremio-stress/pkg/gen"
 )
 
 func TestQueryGenerationWithParams(t *testing.T) {
@@ -35,7 +35,7 @@ func TestQueryGenerationWithParams(t *testing.T) {
 			},
 		},
 	}
-	generator := querygen.NewStressConfQueryGenerator(stressConf)
+	generator := gen.NewStressConfQueryGenerator(stressConf)
 	queries, err := generator.Queries()
 	if err != nil {
 		t.Fatalf("generator was unable to return queries, so stopping %v", err)
@@ -63,7 +63,7 @@ func TestQueryGenerationWithSeveralParams(t *testing.T) {
 			},
 		},
 	}
-	generator := querygen.NewStressConfQueryGenerator(stressConf)
+	generator := gen.NewStressConfQueryGenerator(stressConf)
 
 	var allQueries []string
 	for i := 0; i < 100; i++ {
@@ -109,7 +109,7 @@ func TestQueryGenerationWithNoParams(t *testing.T) {
 			},
 		},
 	}
-	generator := querygen.NewStressConfQueryGenerator(stressConf)
+	generator := gen.NewStressConfQueryGenerator(stressConf)
 	queries, err := generator.Queries()
 	if err != nil {
 		t.Fatalf("generator was unable to return queries, so stopping %v", err)
@@ -144,7 +144,7 @@ func TestQueryGenerationWithNoParamsAndUsingQueryGroup(t *testing.T) {
 			},
 		},
 	}
-	generator := querygen.NewStressConfQueryGenerator(stressConf)
+	generator := gen.NewStressConfQueryGenerator(stressConf)
 	queries, err := generator.Queries()
 	if err != nil {
 		t.Fatalf("generator was unable to return queries, so stopping %v", err)
@@ -188,13 +188,13 @@ func TestQueryGenerationWithParamsAndUsingQueryGroup(t *testing.T) {
 				QueryGroup: &expectedQueryGroupText,
 				Frequency:  1,
 				Parameters: map[string][]interface{}{
-					"my":      []interface{}{1},
-					"my_date": []interface{}{"2014-01-10"},
+					"my":      {1},
+					"my_date": {"2014-01-10"},
 				},
 			},
 		},
 	}
-	generator := querygen.NewStressConfQueryGenerator(stressConf)
+	generator := gen.NewStressConfQueryGenerator(stressConf)
 	queries, err := generator.Queries()
 	if err != nil {
 		t.Fatalf("generator was unable to return queries, so stopping %v", err)

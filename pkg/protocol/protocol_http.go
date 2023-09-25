@@ -17,7 +17,6 @@ package protocol
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,9 +24,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rsvihladremio/dremio-stress/pkg/conf"
-
-	_ "github.com/alexbrainman/odbc"
+	"github.com/rsvihladremio/dremio-stress/pkg/args"
 )
 
 // Engine provides the interface for making remote calls to dremio via a given protocol
@@ -150,7 +147,7 @@ func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err err
 }
 
 // NewHTTPEngine creates the object capable of making calls against the Dremio REST API
-func NewHTTPEngine(a conf.ProtocolArgs) (*HTTPProtocolEngine, error) {
+func NewHTTPEngine(a args.ProtocolArgs) (*HTTPProtocolEngine, error) {
 	client, token, err := authenticateHTTP(a)
 	if err != nil {
 		return &HTTPProtocolEngine{}, err
@@ -164,7 +161,7 @@ func NewHTTPEngine(a conf.ProtocolArgs) (*HTTPProtocolEngine, error) {
 	}, nil
 }
 
-func authenticateHTTP(a conf.ProtocolArgs) (http.Client, string, error) {
+func authenticateHTTP(a args.ProtocolArgs) (http.Client, string, error) {
 	var err error
 	client := http.Client{
 		Timeout: 30 * time.Second,
@@ -199,47 +196,5 @@ func authenticateHTTP(a conf.ProtocolArgs) (http.Client, string, error) {
 		}
 		return client, token, nil
 	}
-	return client, "", fmt.Errorf("uanble to read token from %#v", resultMap)
-}
-
-// ODBCProtocolEngine uses ODBC calls using one of the two Dremio ODBC Drivers. The best supported is the Dremio Flight driver
-type ODBCProtocolEngine struct {
-	db *sql.DB
-}
-
-func (o *ODBCProtocolEngine) Execute(query string) error {
-	_, err := o.db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed executing query: %w", err)
-	}
-	return nil
-}
-
-// Close releases all resources related to the ODBC client connection
-func (o *ODBCProtocolEngine) Close() error {
-	return o.db.Close()
-}
-
-// Name of the protocol
-func (o *ODBCProtocolEngine) Name() string {
-	return "ODBC"
-}
-
-// NewODBCEngine creates a object capable of making calls using the Dremio ODBC API
-func NewODBCEngine(a conf.ProtocolArgs) (*ODBCProtocolEngine, error) {
-	dsn := fmt.Sprintf(
-		"%v;UID=%s;PWD=%s",
-		a.URL,
-		a.User,
-		a.Password,
-	)
-
-	db, err := sql.Open("odbc", dsn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	return &ODBCProtocolEngine{
-		db: db,
-	}, nil
+	return client, "", fmt.Errorf("unable to read token from %#v", resultMap)
 }

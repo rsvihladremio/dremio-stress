@@ -150,7 +150,7 @@ func TestParseJsonStressWithQueryGroup(t *testing.T) {
 	jsonText := `{
   "queryGroups": [
     {
-      "name": "schemaops",
+      "name": "schema",
       "queries": [
         "drop table if exits samples.\"samples.dremio.com\".\"nyc-taxi-trips\"",
         "create table samples.\"samples.dremio.com\".\"nyc-taxi-trips\" STORE AS (type => 'iceberg') AS SELECT (\"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\"))",
@@ -160,7 +160,7 @@ func TestParseJsonStressWithQueryGroup(t *testing.T) {
   ],
   "queries": [
     {
-      "queryGroup": "schemaops",
+      "queryGroup": "schema",
       "frequency": 1
     },
     {
@@ -203,8 +203,8 @@ func TestParseJsonStressWithQueryGroup(t *testing.T) {
 	if query.Frequency != 1 {
 		t.Errorf("expected a frequency of 1 but was %v", query.Frequency)
 	}
-	if *query.QueryGroup != "schemaops" {
-		t.Errorf("expected a query group of 'schemaops' but was %v", query.QueryGroup)
+	if *query.QueryGroup != "schema" {
+		t.Errorf("expected a query group of 'schema' but was %v", query.QueryGroup)
 	}
 
 	if query.QueryText != nil {

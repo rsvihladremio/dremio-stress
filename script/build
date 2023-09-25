@@ -1,4 +1,42 @@
 #!/bin/sh
+#
+# this is also set in script/release-build and is a copy paste
+GIT_SHA=`git rev-parse --short HEAD`
+VERSION=`git rev-parse --abbrev-ref HEAD`
+LDFLAGS="-X github.com/rsvihladremio/dremio-stress/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/dremio-stress/cmd.Version=$VERSION"
 
-export GOARCH=amd64
-go build -o ./bin/dremio-stress .
+
+
+OS="`uname`"
+ARCH="`arch`"
+case $OS in
+  'Linux')
+      echo "building linux"
+      case $ARCH in
+          'amd64')
+            echo "-> amd64 with odbc enabled" 
+            ## try compiling on linux if present, if on arm64 need to have a amd64 toolchain setup with go and unixodbc in that environment
+            GOARCH=amd64 go build -ldflags "$LDFLAGS" -tags=odbc -o ./bin/dremio-stress . 
+            ;;
+        *)
+            echo "-> on $ARCH without odbc" 
+            go build  -ldflags "$LDFLAGS" -o ./bin/dremio-stress .
+            ;;
+        esac
+    ;;
+  'Darwin') 
+    echo "building mac"
+      case $ARCH in
+          'amd64')
+            echo "-> amd64 with odbc enabled" 
+            ## try compiling on linux if present, if on arm64 need to have a amd64 toolchain setup with go and unixodbc in that environment
+            GOARCH=amd64 go build -ldflags "$LDFLAGS" -tags=odbc -o ./bin/dremio-stress . 
+            ;;
+        *)
+            echo "-> on $ARCH without odbc" 
+            go build -ldflags "$LDFLAGS" -o ./bin/dremio-stress .
+            ;;
+        esac
+    ;;
+  *) ;;
+esac
