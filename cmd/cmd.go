@@ -22,9 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rsvihladremio/dremio-stress/pkg/args"
 	"github.com/rsvihladremio/dremio-stress/pkg/conf"
+	"github.com/rsvihladremio/dremio-stress/pkg/gen"
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
-	"github.com/rsvihladremio/dremio-stress/pkg/querygen"
 	"github.com/rsvihladremio/dremio-stress/pkg/stress"
 )
 
@@ -48,27 +49,15 @@ func (o OsFileReader) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
-// ParseProtocol will convert a string to a AccessMethod type
-func ParseProtocol(method string) (conf.Protocol, error) {
-	switch strings.ToLower(method) {
-	case "http":
-		return conf.HTTP, nil
-	case "odbc":
-		return conf.ODBC, nil
-	default:
-		return -1, fmt.Errorf("method: %v is not supported only 'ODBC' and 'HTTP' methods are currently supported", method)
-	}
-}
-
 // ParseArgs will attempt to read the args from flags passed to the cli. It also does validation of the arguments
-func ParseArgs() (conf.Args, error) {
+func ParseArgs() (args.Args, error) {
 	maxConcurrency := flag.Int("max-concurrency", 4, "max number of concurrent queries")
 	timeout := flag.Duration("timeout", 60*time.Second, "default timeout for queries")
 	duration := flag.Duration("duration", 10*time.Minute, "duration of dremio-stress run")
 	user := flag.String("user", "dremio", "user to use at login")
 	password := flag.String("password", "dremio123", "password to use at login")
 	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc'")
-	protocolResult := flag.String("protocol", "http", "communication protocol to use for stress http or odbc are available")
+	protocolMethod := flag.String("protocol", "http", "communication protocol to use for stress http or odbc are available")
 
 	verbose := flag.Bool("v", false, "add more verbose output")
 	skipSSL := flag.Bool("skip-ssl", false, "works with '-protocol http' when using https")
@@ -96,11 +85,11 @@ func ParseArgs() (conf.Args, error) {
   ]
 }
 
-### Using queryGroups to preform several ops in order, schemops will be called roughly 10%% of the time
+### Using queryGroups to preform several ops in order, "schema" will be called roughly 10%% of the time
 {
   "queryGroups": [
     {
-      "name": "schemaops",
+      "name": "schema",
       "queries": [
         "drop table if exists samples.\"samples.dremio.com\".\"A\"",
         "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
@@ -110,7 +99,7 @@ func ParseArgs() (conf.Args, error) {
   ],
   "queries": [
     {
-      "queryGroup": "schemaops",
+      "queryGroup": "schema",
       "frequency": 1
     },
     {
@@ -141,30 +130,26 @@ Usage with docker image on Mac or Windows against a localhost dremio - (all depe
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	protocolMethod, err := ParseProtocol(*protocolResult)
-	if err != nil {
-		return conf.Args{}, err
-	}
-	return conf.Args{
-		ProtocolArgs: conf.ProtocolArgs{
+	return args.Args{
+		ProtocolArgs: args.ProtocolArgs{
 			User:     *user,
 			Password: *password,
 			URL:      *url,
 			SkipSSL:  *skipSSL,
 			Timeout:  *timeout,
 		},
-		StressArgs: conf.StressArgs{
+		StressArgs: args.StressArgs{
 			Duration:       *duration,
 			MaxConcurrency: *maxConcurrency,
 			JSONConfigPath: *jsonConfigPath,
 		},
-		Protocol: protocolMethod,
+		Protocol: *protocolMethod,
 		Verbose:  *verbose,
 	}, nil
 }
 
 // Execute is the entry point function after the args have been parsed
-func Execute(args conf.Args) error {
+func Execute(args args.Args) error {
 	engine, err := GetEngine(args)
 	if err != nil {
 		return err
@@ -174,36 +159,19 @@ func Execute(args conf.Args) error {
 
 // GetEngine is a function which returns a specific protocol engine
 // based on the protocol specified in the passed configuration arguments.
-func GetEngine(args conf.Args) (protocol.Engine, error) {
-	// Check if the protocol in the configuration arguments is HTTP.
-	// If so, initialize the HTTP protocol engine.
-	switch args.Protocol {
-	case conf.HTTP:
-		// Try to create a new HTTP protocol engine.
-		protocolEngine, err := protocol.NewHTTPEngine(args.ProtocolArgs)
-		if err != nil {
-			// If there was an error creating the HTTP protocol engine, return an error.
-			return nil, fmt.Errorf("unable to initialize HTTP protocol engine: %w", err)
+func GetEngine(args args.Args) (protocol.Engine, error) {
+	//loop through and match on available protocols
+	for name, factoryFunction := range conf.GetProtocols() {
+		if strings.ToLower(args.Protocol) == name {
+			return factoryFunction(args.ProtocolArgs)
 		}
-		// Return the created HTTP protocol engine.
-		return protocolEngine, nil
-	case conf.ODBC:
-		// If the protocol is not HTTP, check if it is ODBC.
-		// If so, initialize the ODBC protocol engine.
-		protocolEngine, err := protocol.NewODBCEngine(args.ProtocolArgs)
-		if err != nil {
-			// If there was an error creating the ODBC protocol engine, return an error.
-			return nil, fmt.Errorf("unable to initialize ODBC protocol engine: %w", err)
-		}
-		// Return the created ODBC protocol engine.
-		return protocolEngine, nil
 	}
 	// If the protocol is neither HTTP nor ODBC, return an error.
 	return nil, fmt.Errorf("unknown protocol %v", args.Protocol)
 }
 
 // ExecuteWithEngine is the entry point function after the args have been parsed.
-func ExecuteWithEngine(args conf.Args, protocolEngine protocol.Engine, fileReader FileReader) (err error) {
+func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReader FileReader) (err error) {
 
 	defer func() {
 		if err := protocolEngine.Close(); err != nil {
@@ -219,6 +187,6 @@ func ExecuteWithEngine(args conf.Args, protocolEngine protocol.Engine, fileReade
 	if err != nil {
 		return err
 	}
-	queryGen := querygen.NewStressConfQueryGenerator(stressConf)
+	queryGen := gen.NewStressConfQueryGenerator(stressConf)
 	return stress.Run(args.Verbose, protocolEngine, queryGen, args.StressArgs)
 }

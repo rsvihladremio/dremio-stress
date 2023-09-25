@@ -22,7 +22,8 @@ import (
 	"testing"
 
 	"github.com/rsvihladremio/dremio-stress/cmd"
-	"github.com/rsvihladremio/dremio-stress/pkg/conf"
+	"github.com/rsvihladremio/dremio-stress/pkg/args"
+	"github.com/rsvihladremio/dremio-stress/pkg/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -57,11 +58,11 @@ func (m *MockEngine) Name() string {
 func TestExecute(t *testing.T) {
 	t.Run("should close engine and return error if engine initialization fails", func(t *testing.T) {
 		// Arrange
-		args := conf.Args{
-			StressArgs: conf.StressArgs{
+		args := args.Args{
+			StressArgs: args.StressArgs{
 				JSONConfigPath: "./mock.json",
 			},
-			Protocol: conf.ODBC,
+			Protocol: constants.ODBC,
 		}
 
 		mockEngine := new(MockEngine)
@@ -83,25 +84,6 @@ func TestExecute(t *testing.T) {
 
 }
 
-func TestParseProtocol(t *testing.T) {
-	t.Run("should return HTTP when input is http", func(t *testing.T) {
-		result, err := cmd.ParseProtocol("http")
-		assert.NoError(t, err)
-		assert.Equal(t, conf.HTTP, result)
-	})
-
-	t.Run("should return ODBC when input is odbc", func(t *testing.T) {
-		result, err := cmd.ParseProtocol("odbc")
-		assert.NoError(t, err)
-		assert.Equal(t, conf.ODBC, result)
-	})
-
-	t.Run("should return error when input is unsupported", func(t *testing.T) {
-		_, err := cmd.ParseProtocol("unsupported")
-		assert.Error(t, err)
-	})
-}
-
 func TestParseArgs(t *testing.T) {
 	t.Run("should parse command line arguments correctly", func(t *testing.T) {
 		os.Args = []string{
@@ -119,7 +101,7 @@ func TestParseArgs(t *testing.T) {
 		assert.Equal(t, "dremio123", args.ProtocolArgs.Password)
 		assert.Equal(t, "http://localhost:9047", args.ProtocolArgs.URL)
 		assert.Equal(t, "./stress.json", args.StressArgs.JSONConfigPath)
-		assert.Equal(t, conf.HTTP, args.Protocol)
+		assert.Equal(t, constants.HTTP, args.Protocol)
 	})
 }
 
@@ -133,9 +115,9 @@ func TestGetEngine(t *testing.T) {
 	defer server.Close()
 
 	// Test HTTP Engine
-	httpArgs := conf.Args{
-		Protocol: conf.HTTP,
-		ProtocolArgs: conf.ProtocolArgs{
+	httpArgs := args.Args{
+		Protocol: constants.HTTP,
+		ProtocolArgs: args.ProtocolArgs{
 			User:     "dremio",
 			Password: "dremio123",
 			URL:      server.URL,
@@ -148,20 +130,10 @@ func TestGetEngine(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, httpEngine)
 
-	// Test ODBC Engine
-	odbcArgs := conf.Args{
-		Protocol:     conf.ODBC,
-		ProtocolArgs: conf.ProtocolArgs{},
-	}
-
-	odbcEngine, err := cmd.GetEngine(odbcArgs)
-	assert.NoError(t, err)
-	assert.NotNil(t, odbcEngine)
-
 	// Test invalid engine
-	invalidArgs := conf.Args{
-		Protocol:     10,
-		ProtocolArgs: conf.ProtocolArgs{},
+	invalidArgs := args.Args{
+		Protocol:     "JDBC",
+		ProtocolArgs: args.ProtocolArgs{},
 	}
 
 	_, err = cmd.GetEngine(invalidArgs)

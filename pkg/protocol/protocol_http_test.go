@@ -31,7 +31,7 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/rsvihladremio/dremio-stress/pkg/conf"
+	"github.com/rsvihladremio/dremio-stress/pkg/args"
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
 )
 
@@ -120,7 +120,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestHttpQuerySuccessOverHTTP(t *testing.T) {
-	c := conf.ProtocolArgs{
+	c := args.ProtocolArgs{
 		User:     "dremio",
 		Password: "dremio123",
 		URL:      baseURL,
@@ -136,7 +136,7 @@ func TestHttpQuerySuccessOverHTTP(t *testing.T) {
 }
 
 func TestSqlQueryFailsOverHTTPWithWrongUserNameAndPass(t *testing.T) {
-	c := conf.ProtocolArgs{
+	c := args.ProtocolArgs{
 		User:     "not right",
 		Password: "this either",
 		URL:      baseURL,

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package querygen takes the stress.json conf and uses those rules to generate queries to send to Dremio
-package querygen
+// package gen takes the stress.json conf and uses those rules to generate queries to send to Dremio
+package gen
 
 import (
 	"fmt"
@@ -112,7 +112,7 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 			Min:        min,
 			NextNumber: nextNumber,
 		}
-		var sqls []QueryWithParams
+		var queriesWithParams []QueryWithParams
 		if q.QueryText == nil {
 			if q.QueryGroup != nil {
 				for _, group := range stressConf.QueryGroups {
@@ -121,7 +121,7 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 							panic(fmt.Sprintf("invalid json: cannot have zero queries for query group %v", group.Name))
 						}
 						for _, groupQueryText := range group.Queries {
-							sqls = append(sqls, QueryWithParams{
+							queriesWithParams = append(queriesWithParams, QueryWithParams{
 								QueryText:  groupQueryText,
 								Parameters: q.Parameters,
 							})
@@ -134,14 +134,14 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 		} else {
 			text := *q.QueryText
 			params := q.Parameters
-			sqls = append(sqls, QueryWithParams{
+			queriesWithParams = append(queriesWithParams, QueryWithParams{
 				QueryText:  text,
 				Parameters: params,
 			})
 		}
 		queries = append(queries, QueryMatcher{
 			Range:     r,
-			QueryList: sqls,
+			QueryList: queriesWithParams,
 		})
 	}
 	return &StressConfQueryGenerator{
