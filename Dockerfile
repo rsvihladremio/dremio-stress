@@ -23,7 +23,7 @@ RUN mkdir build &&  \
     cd /app && \
     apt remove -y wget && \
     rm -fr build && \
-    go build -o /usr/bin/dremio-stress . && \
+    go build -tags odbc -o /usr/bin/dremio-stress . && \
     apt clean all && \
     rm -rf /var/cache/yum && \
     rm -fr /app
