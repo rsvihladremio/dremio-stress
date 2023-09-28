@@ -4,7 +4,7 @@ set -e
 
 # this is also set in script/build and is a copy paste
 GIT_SHA=`git rev-parse --short HEAD`
-VERSION=`git rev-parse --abbrev-ref HEAD`
+VERSION=$1
 LDFLAGS="-X github.com/rsvihladremio/dremio-stress/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/dremio-stress/cmd.Version=$VERSION"
 
 # cross compile seems to work fine against windows odbc
