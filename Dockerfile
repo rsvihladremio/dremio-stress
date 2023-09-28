@@ -1,5 +1,6 @@
 FROM --platform=linux/amd64 debian:stable-slim
-
+ARG VERSION=unknown
+ARG GIT_SHA=unknown
 WORKDIR /app
 
 COPY . .
@@ -23,7 +24,7 @@ RUN mkdir build &&  \
     cd /app && \
     apt remove -y wget && \
     rm -fr build && \
-    go build -tags odbc -o /usr/bin/dremio-stress . && \
+    go build -tags odbc -ldflags "-X github.com/rsvihladremio/dremio-stress/cmd.GitSha=${GIT_SHA} -X github.com/rsvihladremio/dremio-stress/cmd.Version=${VERSION}" -o /usr/bin/dremio-stress . && \
     apt clean all && \
     rm -rf /var/cache/yum && \
     rm -fr /app
