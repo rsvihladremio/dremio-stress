@@ -52,9 +52,14 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerat
 	go func() {
 		startTime := time.Now()
 		go func() {
-			for range time.Tick(time.Second * 10) {
+			pauseTime := 10 * time.Second
+			timer := time.NewTicker(pauseTime)
+			for {
+				timer.Reset(pauseTime)
+				<-timer.C //block for 10 seconds
 				elapsed := time.Since(startTime)
 				if elapsed >= maxDuration {
+					timer.Stop()
 					break // Break the loop if the maximum duration is reached
 				}
 				fmt.Printf("%v queries submitted and %v seconds remaining\n", atomic.LoadUint64(&ops), int64((maxDuration - elapsed).Seconds()))
