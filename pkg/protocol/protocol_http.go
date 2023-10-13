@@ -57,9 +57,9 @@ func (h *HTTPProtocolEngine) Name() string {
 }
 
 func (h *HTTPProtocolEngine) Execute(query string, sqlContext string) error {
-	data := map[string]string{
-		"sql":        query,
-		"sqlContext": sqlContext,
+	data := map[string]interface{}{
+		"sql":     query,
+		"context": []string{sqlContext},
 	}
 	jsonBody, err := json.Marshal(data)
 	if err != nil {
