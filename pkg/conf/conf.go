@@ -34,6 +34,7 @@ type QueryGroup struct {
 type QueryConf struct {
 	QueryText  *string                  `json:"query,omitempty"`
 	QueryGroup *string                  `json:"queryGroup,omitempty"`
+	SqlContext *string                  `json:"sqlContext,omitempty"`
 	Frequency  int                      `json:"frequency"`
 	Parameters map[string][]interface{} `json:"parameters"`
 }
@@ -42,6 +43,21 @@ type QueryConf struct {
 type StressJsonConf struct {
 	Queries     []QueryConf  `json:"queries"`
 	QueryGroups []QueryGroup `json:"queryGroups,omitempty"`
+}
+
+func (s *StressJsonConf) GetAllContexts() []string {
+	var contexts []string
+	uniqueContexts := make(map[string]bool)
+	uniqueContexts[""] = true
+	for _, q := range s.Queries {
+		if q.SqlContext != nil {
+			uniqueContexts[*q.SqlContext] = true
+		}
+	}
+	for c := range uniqueContexts {
+		contexts = append(contexts, c)
+	}
+	return contexts
 }
 
 // ParseStressJson reads some jsonText and converts it into a StressJsonConf object, if
@@ -54,10 +70,10 @@ func ParseStressJson(jsonText string) (StressJsonConf, error) {
 	return stressConf, nil
 }
 
-var protocols = make(map[string]func(args.ProtocolArgs) (protocol.Engine, error))
+var protocols = make(map[string]func(args.ProtocolArgs, []string) (protocol.Engine, error))
 
 func init() {
-	protocols[constants.HTTP] = func(args args.ProtocolArgs) (protocol.Engine, error) {
+	protocols[constants.HTTP] = func(args args.ProtocolArgs, contexts []string) (protocol.Engine, error) {
 		// Try to create a new HTTP protocol engine.
 		protocolEngine, err := protocol.NewHTTPEngine(args)
 		if err != nil {
@@ -69,6 +85,6 @@ func init() {
 	}
 }
 
-func GetProtocols() map[string]func(args.ProtocolArgs) (protocol.Engine, error) {
+func GetProtocols() map[string]func(args.ProtocolArgs, []string) (protocol.Engine, error) {
 	return protocols
 }

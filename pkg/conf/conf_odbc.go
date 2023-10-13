@@ -25,9 +25,9 @@ import (
 )
 
 func init() {
-	protocols[constants.ODBC] = func(args args.ProtocolArgs) (protocol.Engine, error) {
+	protocols[constants.ODBC] = func(args args.ProtocolArgs, contexts []string) (protocol.Engine, error) {
 		// initialize the ODBC protocol engine.
-		protocolEngine, err := protocol.NewODBCEngine(args)
+		protocolEngine, err := protocol.NewODBCEngine(args, contexts)
 		if err != nil {
 			// If there was an error creating the ODBC protocol engine, return an error.
 			return nil, fmt.Errorf("unable to initialize ODBC protocol engine: %w", err)

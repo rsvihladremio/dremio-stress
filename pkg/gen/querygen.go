@@ -27,10 +27,11 @@ import (
 type QueryWithParams struct {
 	QueryText  string
 	Parameters map[string][]interface{}
+	SqlContext string
 }
 
 type QueryGenerator interface {
-	Queries() ([]string, error)
+	Queries() ([][]string, error)
 }
 
 type StressConfQueryGenerator struct {
@@ -78,17 +79,17 @@ func TokenMap(query string, replacements map[string][]interface{}) string {
 
 }
 
-func (s *StressConfQueryGenerator) Queries() ([]string, error) {
+func (s *StressConfQueryGenerator) Queries() ([][]string, error) {
 	pick := rand.Intn(s.totalFreq)
 	for _, q := range s.queries {
 		if pick >= q.Range.Min && pick < q.Range.NextNumber {
-			var mappedSql []string
+			var mappedSql [][]string
 			for _, query := range q.QueryList {
 				rawSql := query.QueryText
 				if len(query.Parameters) > 0 {
 					rawSql = TokenMap(rawSql, query.Parameters)
 				}
-				mappedSql = append(mappedSql, rawSql)
+				mappedSql = append(mappedSql, []string{rawSql, query.SqlContext})
 			}
 			return mappedSql, nil
 		}
@@ -98,7 +99,7 @@ func (s *StressConfQueryGenerator) Queries() ([]string, error) {
 	for _, q := range s.queries {
 		ranges = append(ranges, fmt.Sprintf("{start: %v, end: %v}", q.Range.Min, q.Range.NextNumber))
 	}
-	return []string{}, fmt.Errorf("the number %v did not find a list of ranges that matched out of: %v", pick, strings.Join(ranges, ", "))
+	return [][]string{}, fmt.Errorf("the number %v did not find a list of ranges that matched out of: %v", pick, strings.Join(ranges, ", "))
 }
 
 func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQueryGenerator {
@@ -121,9 +122,14 @@ func NewStressConfQueryGenerator(stressConf conf.StressJsonConf) *StressConfQuer
 							panic(fmt.Sprintf("invalid json: cannot have zero queries for query group %v", group.Name))
 						}
 						for _, groupQueryText := range group.Queries {
+							var sqlContext string
+							if q.SqlContext != nil {
+								sqlContext = *q.SqlContext
+							}
 							queriesWithParams = append(queriesWithParams, QueryWithParams{
 								QueryText:  groupQueryText,
 								Parameters: q.Parameters,
+								SqlContext: sqlContext,
 							})
 						}
 					}

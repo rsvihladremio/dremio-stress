@@ -77,16 +77,17 @@ EXAMPLE stress.json:
         {
           "name": "schema",
           "queries": [
-            "drop table if exists samples.\"samples.dremio.com\".\"A\"",
-            "create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
-            "select * from  samples.\"samples.dremio.com\".\"A\""
+            "drop table if exists \"samples.dremio.com\".\"A\"",
+            "create table \"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
+            "select * from \"samples.dremio.com\".\"A\""
           ]
         }
       ],
       "queries": [
         {
           "queryGroup": "schema",
-          "frequency": 1
+          "frequency": 1,
+          "sqlContext": "samples"
         },
         {
           "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
@@ -136,43 +137,50 @@ USAGE:
 // Execute is the entry point function after the args have been parsed
 func Execute(args args.Args) error {
 	fmt.Fprintf(os.Stdout, "dremio-stress %s %s-%s\n", odbcDisabled, Version, GitSha)
-	engine, err := GetEngine(args)
+
+	confPath := args.StressArgs.JSONConfigPath
+	stressConf, err := GetConf(OsFileReader{}, confPath)
+	engine, err := GetEngine(args, stressConf)
 	if err != nil {
 		return err
 	}
-	return ExecuteWithEngine(args, engine, OsFileReader{})
+	return ExecuteWithEngine(args, engine, stressConf)
 }
 
 // GetEngine is a function which returns a specific protocol engine
 // based on the protocol specified in the passed configuration arguments.
-func GetEngine(args args.Args) (protocol.Engine, error) {
+func GetEngine(args args.Args, stressJsonConf conf.StressJsonConf) (protocol.Engine, error) {
 	//loop through and match on available protocols
 	for name, factoryFunction := range conf.GetProtocols() {
 		if strings.ToLower(args.Protocol) == name {
-			return factoryFunction(args.ProtocolArgs)
+			slog.Warn("context", strings.Join(stressJsonConf.GetAllContexts(), ", "))
+			return factoryFunction(args.ProtocolArgs, stressJsonConf.GetAllContexts())
 		}
 	}
 	// If the protocol is neither HTTP nor ODBC, return an error.
 	return nil, fmt.Errorf("unknown protocol %v", args.Protocol)
 }
 
+func GetConf(fileReader FileReader, jsonConfPath string) (conf.StressJsonConf, error) {
+	jsonText, err := fileReader.ReadFile(jsonConfPath)
+	if err != nil {
+		return conf.StressJsonConf{}, err
+	}
+	stressConf, err := conf.ParseStressJson(string(jsonText))
+	if err != nil {
+		return conf.StressJsonConf{}, err
+	}
+	return stressConf, nil
+}
+
 // ExecuteWithEngine is the entry point function after the args have been parsed.
-func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReader FileReader) (err error) {
+func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, stressConf conf.StressJsonConf) (err error) {
 
 	defer func() {
 		if err := protocolEngine.Close(); err != nil {
 			slog.Warn("unable to close protocol engine, may leak resources.", "engine_name", protocolEngine.Name(), "error_msg", err)
 		}
 	}()
-
-	jsonText, err := fileReader.ReadFile(args.StressArgs.JSONConfigPath)
-	if err != nil {
-		return err
-	}
-	stressConf, err := conf.ParseStressJson(string(jsonText))
-	if err != nil {
-		return err
-	}
 	queryGen := gen.NewStressConfQueryGenerator(stressConf)
 	return stress.Run(protocolEngine, queryGen, args.StressArgs)
 }
@@ -184,5 +192,5 @@ var Version = "dev"
 
 func init() {
 	examples["Usage with http"] = "dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json"
-	examples["Usage with docker against a localhost dremio - (all dependencies bundled)"] = "docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress-protocol odbc -user dremio -password dremio123 -url \"Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false\"  -conf /mnt/stress.json"
+	examples["Usage with docker against a localhost dremio - (all dependencies bundled)"] = "docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress -protocol odbc -user dremio -password dremio123 -url \"Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false\"  -conf /mnt/stress.json"
 }

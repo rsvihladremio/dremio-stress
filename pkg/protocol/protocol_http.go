@@ -30,7 +30,7 @@ import (
 
 // Engine provides the interface for making remote calls to dremio via a given protocol
 type Engine interface {
-	Execute(string) error
+	Execute(string, string) error
 	Name() string
 	Close() error
 }
@@ -56,9 +56,10 @@ func (h *HTTPProtocolEngine) Name() string {
 	return "HTTP"
 }
 
-func (h *HTTPProtocolEngine) Execute(query string) error {
+func (h *HTTPProtocolEngine) Execute(query string, sqlContext string) error {
 	data := map[string]string{
-		"sql": query,
+		"sql":        query,
+		"sqlContext": sqlContext,
 	}
 	jsonBody, err := json.Marshal(data)
 	if err != nil {
