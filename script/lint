@@ -5,9 +5,6 @@ set -e
 echo "running go fmt"
 go fmt ./...
 
-<<<<<<< Updated upstream
-go vet ./...
-=======
 echo "running go vet"
 go vet ./...
 
@@ -20,6 +17,5 @@ if ! type "golangci-lint" > /dev/null; then
 
     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
 fi
-echo "running golang ci run"
+echo "running golanglint-ci run"
 golangci-lint run 
->>>>>>> Stashed changes
