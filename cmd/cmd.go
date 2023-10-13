@@ -17,7 +17,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -153,7 +153,7 @@ func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReade
 
 	defer func() {
 		if err := protocolEngine.Close(); err != nil {
-			log.Printf("WARN: unable to close protocol engine '%v' due to %v", protocolEngine.Name(), err)
+			slog.Warn("unable to close protocol engine, may leak resources.", "engine_name", protocolEngine.Name(), "error_msg", err)
 		}
 	}()
 
