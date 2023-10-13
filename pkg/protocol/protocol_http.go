@@ -37,11 +37,11 @@ type Engine interface {
 
 // HTTPProtocolEngine uses HTTP calls against the Dremio REST API
 type HTTPProtocolEngine struct {
-	token               string
-	client              http.Client
-	queryTimeoutMinutes int
-	queryURL            string
-	queryStatusURL      string
+	token                string
+	client               http.Client
+	queryTimeoutDuration time.Duration
+	queryURL             string
+	queryStatusURL       string
 }
 
 // Close is no-op for the HTTPProtocolEngine and will always succeed
@@ -101,9 +101,9 @@ func (h *HTTPProtocolEngine) Execute(query string) error {
 
 func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err error) {
 	url := fmt.Sprintf("%v/%v", h.queryStatusURL, id)
-	intervalsPerMinutes := 120
-	sleepTimeSeconds := 60.0 / intervalsPerMinutes
-	totalIterations := h.queryTimeoutMinutes * intervalsPerMinutes
+	intervalsPerSecond := 2
+	sleepTimeSeconds := 60.0 / intervalsPerSecond
+	totalIterations := int(h.queryTimeoutDuration.Seconds() * float64(intervalsPerSecond))
 	var lastState string
 	for i := 0; i < totalIterations; i++ {
 		time.Sleep(time.Duration(sleepTimeSeconds) * time.Second)
@@ -145,7 +145,7 @@ func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err err
 			return "", fmt.Errorf("invalid result body for id %v: %#v", id, resultMap)
 		}
 	}
-	return lastState, fmt.Errorf("query timed out after %v minutes. state was %v", h.queryTimeoutMinutes, lastState)
+	return lastState, fmt.Errorf("query timed out after %v minutes. state was %v", h.queryTimeoutDuration, lastState)
 }
 
 // NewHTTPEngine creates the object capable of making calls against the Dremio REST API
@@ -155,11 +155,11 @@ func NewHTTPEngine(a args.ProtocolArgs) (*HTTPProtocolEngine, error) {
 		return &HTTPProtocolEngine{}, err
 	}
 	return &HTTPProtocolEngine{
-		token:               fmt.Sprintf("_dremio%v", token),
-		queryURL:            fmt.Sprintf("%v/api/v3/sql", a.URL),
-		queryStatusURL:      fmt.Sprintf("%v/api/v3/job", a.URL),
-		client:              client,
-		queryTimeoutMinutes: 60,
+		token:                fmt.Sprintf("_dremio%v", token),
+		queryURL:             fmt.Sprintf("%v/api/v3/sql", a.URL),
+		queryStatusURL:       fmt.Sprintf("%v/api/v3/job", a.URL),
+		client:               client,
+		queryTimeoutDuration: a.Timeout,
 	}, nil
 }
 
