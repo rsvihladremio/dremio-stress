@@ -18,7 +18,7 @@ package stress
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,7 +28,7 @@ import (
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
 )
 
-func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
+func Run(protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
 
 	// Create channel for queriesChan
 	queriesChan := make(chan []string)
@@ -42,7 +42,7 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerat
 	// Start the workers
 	for i := 1; i <= maxConcurrency; i++ {
 		wg.Add(1)
-		go processor(i, verbose, protocolEngine, queriesChan, &wg)
+		go processor(i, protocolEngine, queriesChan, &wg)
 	}
 
 	// Set the maximum duration for generating queries (e.g., 5 seconds)
@@ -75,7 +75,7 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerat
 
 			queries, err := queryGen.Queries()
 			if err != nil {
-				log.Printf("ERROR: unable to get queries: %v", err)
+				slog.Error(" unable to get queries", "error_msg", err)
 			}
 			if len(queries) == 0 {
 				break // Break the loop if there are no more strings to generate
@@ -91,20 +91,18 @@ func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerat
 	return nil
 }
 
-func processor(id int, verbose bool, protocolEngine protocol.Engine, jobs <-chan []string, wg *sync.WaitGroup) {
+func processor(id int, protocolEngine protocol.Engine, jobs <-chan []string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
-		if verbose {
-			log.Printf("DEBUG: worker %v firing query `%v`", id, job)
-		}
+		slog.Debug("worker firing query", "worker_id", id, "query", job)
 		total := len(job)
 		for i, q := range job {
 			if err := protocolEngine.Execute(q); err != nil {
-				log.Printf("ERROR: query '%v' failed: '%v'", job, err)
+				slog.Error("query failed", "query", job, "error_msg", err)
 				//stop bothering trying to execute the rest..if a query group fails we should just stop
 				remaining := total - (i + 1)
 				if remaining > 0 {
-					log.Printf("WARN: skipping remaining %v queries", remaining)
+					slog.Warn("skipping remaining queries", "queries_remaining", remaining)
 				}
 				break
 			}

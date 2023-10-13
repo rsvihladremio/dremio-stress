@@ -17,7 +17,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"runtime"
 	"strings"
@@ -108,6 +108,13 @@ USAGE:
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	var programLevel = new(slog.LevelVar) // Info by default
+	if *verbose {
+		programLevel.Set(slog.LevelDebug)
+	}
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	slog.SetDefault(slog.New(h))
+
 	return args.Args{
 		ProtocolArgs: args.ProtocolArgs{
 			User:     *user,
@@ -154,7 +161,7 @@ func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReade
 
 	defer func() {
 		if err := protocolEngine.Close(); err != nil {
-			log.Printf("WARN: unable to close protocol engine '%v' due to %v", protocolEngine.Name(), err)
+			slog.Warn("unable to close protocol engine, may leak resources.", "engine_name", protocolEngine.Name(), "error_msg", err)
 		}
 	}()
 
@@ -167,7 +174,7 @@ func ExecuteWithEngine(args args.Args, protocolEngine protocol.Engine, fileReade
 		return err
 	}
 	queryGen := gen.NewStressConfQueryGenerator(stressConf)
-	return stress.Run(args.Verbose, protocolEngine, queryGen, args.StressArgs)
+	return stress.Run(protocolEngine, queryGen, args.StressArgs)
 }
 
 var examples = make(map[string]string)
