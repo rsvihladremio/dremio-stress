@@ -1,5 +1,25 @@
 #!/bin/sh
 
+set -e
+
+echo "running go fmt"
 go fmt ./...
 
+<<<<<<< Updated upstream
 go vet ./...
+=======
+echo "running go vet"
+go vet ./...
+
+echo "Checking if golangci-lint is installed…"
+date "+%H:%M:%S"
+
+if ! type "golangci-lint" > /dev/null; then
+    echo "golaningci-lint not found installing…"
+    date "+%H:%M:%S"
+
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+fi
+echo "running golang ci run"
+golangci-lint run 
+>>>>>>> Stashed changes
