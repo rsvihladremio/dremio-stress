@@ -3,3 +3,15 @@
 go fmt ./...
 
 go vet ./...
+
+echo "Checking if golangci-lint is installed…"
+date "+%H:%M:%S"
+
+if ! type "golangci-lint" > /dev/null; then
+    echo "golaningci-lint not found installing…"
+    date "+%H:%M:%S"
+
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
+fi
+
+golangci-lint run 
