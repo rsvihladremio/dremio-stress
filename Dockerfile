@@ -10,8 +10,8 @@ RUN mkdir build &&  \
     apt update -y && \
     apt upgrade -y && \ 
     apt install -y wget odbcinst unixodbc unixodbc-dev alien && \
-    wget https://go.dev/dl/go1.21.1.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz && \
+    wget https://go.dev/dl/go1.21.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go && \
     wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
     alien --scripts $(ls ./arrow-flight-sql-odbc-driver-*) && \
