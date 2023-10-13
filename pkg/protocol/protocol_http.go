@@ -42,6 +42,8 @@ type HTTPProtocolEngine struct {
 	queryTimeoutDuration time.Duration
 	queryURL             string
 	queryStatusURL       string
+	sleepTimeSeconds     int
+	totalRetries         int
 }
 
 // Close is no-op for the HTTPProtocolEngine and will always succeed
@@ -101,12 +103,10 @@ func (h *HTTPProtocolEngine) Execute(query string) error {
 
 func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err error) {
 	url := fmt.Sprintf("%v/%v", h.queryStatusURL, id)
-	intervalsPerSecond := 2
-	sleepTimeSeconds := 60.0 / intervalsPerSecond
-	totalIterations := int(h.queryTimeoutDuration.Seconds() * float64(intervalsPerSecond))
+
 	var lastState string
-	for i := 0; i < totalIterations; i++ {
-		time.Sleep(time.Duration(sleepTimeSeconds) * time.Second)
+	for i := 0; i < h.totalRetries; i++ {
+		time.Sleep(time.Duration(h.sleepTimeSeconds) * time.Second)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return "", fmt.Errorf("unable to create request %w", err)
@@ -133,8 +133,10 @@ func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err err
 			// possible results
 			//"NOT_SUBMITTED, STARTING, RUNNING, COMPLETED, CANCELED, FAILED, CANCELLATION_REQUESTED, PLANNING, PENDING, METADATA_RETRIEVAL, QUEUED, ENGINE_START, EXECUTION_PLANNING, INVALID_STATE
 			if v == "COMPLETED" || v == "CANCELLED" || v == "FAILED" || v == "INVALID_STATE" || v == "CANCELLATION_REQUESTED" || v == "" {
-				slog.Debug("query done", "query_time_seconds", (i+1)*sleepTimeSeconds)
+				slog.Debug("query done", "query_time_seconds", (i+1)*h.sleepTimeSeconds, "status", v)
 				return v, nil
+			} else {
+				slog.Debug("query not done", "query_time_seconds", (i+1)*h.sleepTimeSeconds, "status", v)
 			}
 			token := fmt.Sprintf("%v", v)
 			if token == "" {
@@ -154,12 +156,18 @@ func NewHTTPEngine(a args.ProtocolArgs) (*HTTPProtocolEngine, error) {
 	if err != nil {
 		return &HTTPProtocolEngine{}, err
 	}
+	intervalsPerSecond := 2
+	sleepTimeSeconds := 1.0 / intervalsPerSecond
+	totalIterations := int(a.Timeout.Seconds() * float64(intervalsPerSecond))
+	slog.Debug("initializing http status check parameters", "sleep_time_second", sleepTimeSeconds, "max_status_check_calls", totalIterations)
 	return &HTTPProtocolEngine{
 		token:                fmt.Sprintf("_dremio%v", token),
 		queryURL:             fmt.Sprintf("%v/api/v3/sql", a.URL),
 		queryStatusURL:       fmt.Sprintf("%v/api/v3/job", a.URL),
 		client:               client,
 		queryTimeoutDuration: a.Timeout,
+		totalRetries:         totalIterations,
+		sleepTimeSeconds:     sleepTimeSeconds,
 	}, nil
 }
 

@@ -19,7 +19,6 @@ package stress
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,14 +28,8 @@ import (
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
 )
 
-func Run(verbose bool, protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
+func Run(protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
 
-	var programLevel = new(slog.LevelVar) // Info by default
-	if verbose {
-		programLevel.Set(slog.LevelDebug)
-	}
-	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
-	slog.SetDefault(slog.New(h))
 	// Create channel for queriesChan
 	queriesChan := make(chan []string)
 
