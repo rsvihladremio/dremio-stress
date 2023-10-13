@@ -100,15 +100,9 @@ func (h *HTTPProtocolEngine) Execute(query string) error {
 
 func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err error) {
 	url := fmt.Sprintf("%v/%v", h.queryStatusURL, id)
-<<<<<<< Updated upstream
-	intervalsPerMinutes := 6
-	sleepTimeSeconds := 60 / intervalsPerMinutes
-	totalIterations := h.queryTimeoutMinutes * intervalsPerMinutes
-=======
-	intervalsPerMinutes := 120
-	sleepTimeSeconds := 60.0 / intervalsPerMinutes
-	totalIterations := int(h.queryTimeoutDuration.Seconds() * float64(intervalsPerMinutes))
->>>>>>> Stashed changes
+	intervalsPerSecond := 2
+	sleepTimeSeconds := 60.0 / intervalsPerSecond
+	totalIterations := int(h.queryTimeoutDuration.Seconds() * float64(intervalsPerSecond))
 	var lastState string
 	for i := 0; i < totalIterations; i++ {
 		time.Sleep(time.Duration(sleepTimeSeconds) * time.Second)
