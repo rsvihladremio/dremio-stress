@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -100,8 +101,8 @@ func (h *HTTPProtocolEngine) Execute(query string) error {
 
 func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err error) {
 	url := fmt.Sprintf("%v/%v", h.queryStatusURL, id)
-	intervalsPerMinutes := 6
-	sleepTimeSeconds := 60 / intervalsPerMinutes
+	intervalsPerMinutes := 120
+	sleepTimeSeconds := 60.0 / intervalsPerMinutes
 	totalIterations := h.queryTimeoutMinutes * intervalsPerMinutes
 	var lastState string
 	for i := 0; i < totalIterations; i++ {
@@ -132,6 +133,7 @@ func (h *HTTPProtocolEngine) checkQueryStatus(id string) (status string, err err
 			// possible results
 			//"NOT_SUBMITTED, STARTING, RUNNING, COMPLETED, CANCELED, FAILED, CANCELLATION_REQUESTED, PLANNING, PENDING, METADATA_RETRIEVAL, QUEUED, ENGINE_START, EXECUTION_PLANNING, INVALID_STATE
 			if v == "COMPLETED" || v == "CANCELLED" || v == "FAILED" || v == "INVALID_STATE" || v == "CANCELLATION_REQUESTED" || v == "" {
+				slog.Debug("query done", "query_time_seconds", (i+1)*sleepTimeSeconds)
 				return v, nil
 			}
 			token := fmt.Sprintf("%v", v)
