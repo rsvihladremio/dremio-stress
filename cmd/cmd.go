@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -51,12 +52,12 @@ func (o OsFileReader) ReadFile(filename string) ([]byte, error) {
 
 // ParseArgs will attempt to read the args from flags passed to the cli. It also does validation of the arguments
 func ParseArgs() (args.Args, error) {
-	maxConcurrency := flag.Int("max-concurrency", 4, "max number of concurrent queries")
+	maxConcurrency := flag.Int("max-concurrency", runtime.NumCPU()*2, "max number of concurrent queries, we suggest for slower queries to use more concurrency if the server can handle it")
 	timeout := flag.Duration("timeout", 60*time.Second, "default timeout for queries")
 	duration := flag.Duration("duration", 10*time.Minute, "duration of dremio-stress run")
 	user := flag.String("user", "dremio", "user to use at login")
 	password := flag.String("password", "dremio123", "password to use at login")
-	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc'")
+	url := flag.String("url", "http://localhost:9047", "http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc', for performance odbc is strongly suggested")
 	protocolMethod := flag.String("protocol", "http", "communication protocol to use for stress http or odbc are available")
 
 	verbose := flag.Bool("v", false, "add more verbose output")
@@ -89,7 +90,7 @@ EXAMPLE stress.json:
         },
         {
           "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
-          "frequency": 9,
+          "frequency": 1000,
           "parameters": {
               "start": ["2018-02-04", "2018-02-05"],
               "end": ["2018-02-14","2018-02-15"]
