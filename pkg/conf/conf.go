@@ -18,6 +18,7 @@ package conf
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/rsvihladremio/dremio-stress/pkg/args"
 	"github.com/rsvihladremio/dremio-stress/pkg/constants"
@@ -44,6 +45,22 @@ type QueryConf struct {
 type StressJsonConf struct {
 	Queries     []QueryConf  `json:"queries"`
 	QueryGroups []QueryGroup `json:"queryGroups,omitempty"`
+}
+
+func (s *StressJsonConf) GetContexts() []string {
+	var contexts []string
+	for _, q := range s.Queries {
+		var builder strings.Builder
+		for _, c := range q.SqlContext {
+			tmp := c
+			if strings.Contains(c, ".") {
+				tmp = fmt.Sprintf("\"%v\"", c)
+			}
+			builder.WriteString(tmp)
+		}
+		contexts = append(contexts, builder.String())
+	}
+	return contexts
 }
 
 // ParseStressJson reads some jsonText and converts it into a StressJsonConf object, if

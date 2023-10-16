@@ -15,35 +15,36 @@ import (
 
 // ODBCProtocolEngine uses ODBC calls using one of the two Dremio ODBC Drivers. The best supported is the Dremio Flight driver
 type ODBCProtocolEngine struct {
-	db             *sql.DB
+	db             map[string]*sql.DB
 	currentContext string
 	lock           *sync.Mutex
 }
 
-func (o *ODBCProtocolEngine) Execute(query string, sqlContext []string) error {
+func (o *ODBCProtocolEngine) Execute(query string, sqlContexts []string) error {
+	sqlContext := strings.Join(sqlContexts, ".")
 	slog.Warn("context", "context", sqlContext)
 	o.lock.Lock()
-	//if sqlContext != "" && o.currentContext != sqlContext {
-	//		defer o.lock.Unlock()
-	//		o.currentContext = sqlContext
-	//_, err := o.db.Exec(fmt.Sprintf("USE %v", sqlContext))
-	//if err != nil {
-	//return fmt.Errorf("failed executing query: %w", err)
-	//}
-	if len(sqlContext) > 0 {
+	if len(sqlContext) > 0 { //&& o.currentContext != sqlContext {
 		defer o.lock.Unlock()
-		useSt := fmt.Sprintf("USE %v", strings.Join(sqlContext, "."))
-		//slog.Warn("changing context", "context", sqlContext)
-		_, err := o.db.Exec(useSt + ";" + query)
+		slog.Warn("changing context", "context", sqlContext)
+		//o.currentContext = sqlContext
+		rows, err := o.db[""].Query("USE " + sqlContext)
+		if err != nil {
+			return fmt.Errorf("failed executing USE context %v: %v", sqlContext, err)
+		}
+		rows.Close()
+		rows, err = o.db[""].Query(query)
 		if err != nil {
 			return fmt.Errorf("failed executing query: %w", err)
 		}
+		rows.Close()
 	} else {
 		o.lock.Unlock()
-		_, err := o.db.Exec(query)
+		rows, err := o.db[""].Query(query)
 		if err != nil {
 			return fmt.Errorf("failed executing query: %w", err)
 		}
+		rows.Close()
 	}
 	return nil
 }
@@ -51,7 +52,10 @@ func (o *ODBCProtocolEngine) Execute(query string, sqlContext []string) error {
 // Close releases all resources related to the ODBC client connection func (o *ODBCProtocolEngine) Close() error {
 func (o *ODBCProtocolEngine) Close() error {
 	if o.db != nil {
-		return o.db.Close()
+		for _, v := range o.db {
+			//TODO stop leaking
+			v.Close()
+		}
 	}
 	return nil
 }
@@ -69,13 +73,27 @@ func NewODBCEngine(a args.ProtocolArgs, contexts []string) (*ODBCProtocolEngine,
 		a.User,
 		a.Password,
 	)
+	connections := make(map[string]*sql.DB)
+	/*for _, c := range contexts {
+		db, err := sql.Open("odbc", dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open database %w", err)
+		}
+		if _, err := db.Exec("USE " + c); err != nil {
+			return nil, err
+		}
+		connections[c] = db
+	}
+	*/
 	db, err := sql.Open("odbc", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database %w", err)
 	}
+	connections[""] = db
+
 	lock := &sync.Mutex{}
 	return &ODBCProtocolEngine{
-		db:   db,
+		db:   connections,
 		lock: lock,
 	}, nil
 }

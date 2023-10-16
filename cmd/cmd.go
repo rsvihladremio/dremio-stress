@@ -153,7 +153,7 @@ func GetEngine(args args.Args, stressJsonConf conf.StressJsonConf) (protocol.Eng
 	//loop through and match on available protocols
 	for name, factoryFunction := range conf.GetProtocols() {
 		if strings.ToLower(args.Protocol) == name {
-			return factoryFunction(args.ProtocolArgs, []string{})
+			return factoryFunction(args.ProtocolArgs, stressJsonConf.GetContexts())
 		}
 	}
 	// If the protocol is neither HTTP nor ODBC, return an error.
