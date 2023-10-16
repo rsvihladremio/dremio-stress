@@ -22,6 +22,7 @@ import (
 	"github.com/rsvihladremio/dremio-stress/pkg/args"
 	"github.com/rsvihladremio/dremio-stress/pkg/constants"
 	"github.com/rsvihladremio/dremio-stress/pkg/protocol"
+	"log/slog"
 )
 
 // QueryGroup is a sequence of queries run in order together
@@ -34,7 +35,7 @@ type QueryGroup struct {
 type QueryConf struct {
 	QueryText  *string                  `json:"query,omitempty"`
 	QueryGroup *string                  `json:"queryGroup,omitempty"`
-	SqlContext *string                  `json:"sqlContext,omitempty"`
+	SqlContext []string                 `json:"sqlContext,omitempty"`
 	Frequency  int                      `json:"frequency"`
 	Parameters map[string][]interface{} `json:"parameters"`
 }
@@ -45,21 +46,6 @@ type StressJsonConf struct {
 	QueryGroups []QueryGroup `json:"queryGroups,omitempty"`
 }
 
-func (s *StressJsonConf) GetAllContexts() []string {
-	var contexts []string
-	uniqueContexts := make(map[string]bool)
-	uniqueContexts[""] = true
-	for _, q := range s.Queries {
-		if q.SqlContext != nil {
-			uniqueContexts[*q.SqlContext] = true
-		}
-	}
-	for c := range uniqueContexts {
-		contexts = append(contexts, c)
-	}
-	return contexts
-}
-
 // ParseStressJson reads some jsonText and converts it into a StressJsonConf object, if
 // the json is not valid it will return an error
 func ParseStressJson(jsonText string) (StressJsonConf, error) {
@@ -67,6 +53,7 @@ func ParseStressJson(jsonText string) (StressJsonConf, error) {
 	if err := json.Unmarshal([]byte(jsonText), &stressConf); err != nil {
 		return StressJsonConf{}, fmt.Errorf("unable create configuration object: %v", err)
 	}
+	slog.Debug("configuration parsed", "source", jsonText, "result", stressConf)
 	return stressConf, nil
 }
 

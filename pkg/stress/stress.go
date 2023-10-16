@@ -31,7 +31,7 @@ import (
 func Run(protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.StressArgs) error {
 
 	// Create channel for queriesChan
-	queriesChan := make(chan [][]string)
+	queriesChan := make(chan []gen.QueryWithContext)
 
 	// Number of workers (concurrency limit)
 	maxConcurrency := args.MaxConcurrency
@@ -91,14 +91,14 @@ func Run(protocolEngine protocol.Engine, queryGen gen.QueryGenerator, args args.
 	return nil
 }
 
-func processor(id int, protocolEngine protocol.Engine, jobs <-chan [][]string, wg *sync.WaitGroup) {
+func processor(id int, protocolEngine protocol.Engine, jobs <-chan []gen.QueryWithContext, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
 		slog.Debug("worker firing query", "worker_id", id, "query", job)
 		total := len(job)
 		for i, job := range job {
-			q := job[0]
-			context := job[1]
+			q := job.Query
+			context := job.Context
 			if err := protocolEngine.Execute(q, context); err != nil {
 				slog.Error("query failed", "query", job, "error_msg", err)
 				//stop bothering trying to execute the rest..if a query group fails we should just stop

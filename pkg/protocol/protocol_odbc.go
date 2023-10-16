@@ -3,9 +3,10 @@
 package protocol
 
 import (
-    "log/slog"
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"strings"
 	"sync"
 
 	_ "github.com/alexbrainman/odbc"
@@ -19,18 +20,20 @@ type ODBCProtocolEngine struct {
 	lock           *sync.Mutex
 }
 
-func (o *ODBCProtocolEngine) Execute(query string, sqlContext string) error {
+func (o *ODBCProtocolEngine) Execute(query string, sqlContext []string) error {
 	slog.Warn("context", "context", sqlContext)
 	o.lock.Lock()
-	if sqlContext != "" && o.currentContext != sqlContext {
+	//if sqlContext != "" && o.currentContext != sqlContext {
+	//		defer o.lock.Unlock()
+	//		o.currentContext = sqlContext
+	//_, err := o.db.Exec(fmt.Sprintf("USE %v", sqlContext))
+	//if err != nil {
+	//return fmt.Errorf("failed executing query: %w", err)
+	//}
+	if len(sqlContext) > 0 {
 		defer o.lock.Unlock()
-		o.currentContext = sqlContext
-		//_, err := o.db.Exec(fmt.Sprintf("USE %v", sqlContext))
-		//if err != nil {
-		//return fmt.Errorf("failed executing query: %w", err)
-		//}
-		useSt := fmt.Sprintf("USE %v", sqlContext)
-		slog.Warn("changing context", "context", sqlContext)
+		useSt := fmt.Sprintf("USE %v", strings.Join(sqlContext, "."))
+		//slog.Warn("changing context", "context", sqlContext)
 		_, err := o.db.Exec(useSt + ";" + query)
 		if err != nil {
 			return fmt.Errorf("failed executing query: %w", err)
@@ -45,7 +48,7 @@ func (o *ODBCProtocolEngine) Execute(query string, sqlContext string) error {
 	return nil
 }
 
-// Close releases all resources related to the ODBC client connection
+// Close releases all resources related to the ODBC client connection func (o *ODBCProtocolEngine) Close() error {
 func (o *ODBCProtocolEngine) Close() error {
 	if o.db != nil {
 		return o.db.Close()
