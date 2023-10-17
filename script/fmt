@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# scripts/fmt: format all files
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+echo "==> Running fmt"
+./mvnw spotless:apply

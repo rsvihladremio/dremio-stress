@@ -11,14 +11,3 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.dremio.support.diagnostics.stress;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.Map;
-
-public interface ApiCall {
-  HttpApiResponse submitPost(URL url, Map<String, String> headers, String body) throws IOException;
-
-  HttpApiResponse submitGet(URL url, Map<String, String> headers) throws IOException;
-}

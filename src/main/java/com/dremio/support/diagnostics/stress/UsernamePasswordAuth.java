@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -13,8 +13,16 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-/** HttpAuth wraps the username and password */
-public class HttpAuth {
+/** Username Password wraps the username and password */
+public class UsernamePasswordAuth {
+  public String getUsername() {
+    return username;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
   private final String username;
   private final String password;
 
@@ -25,12 +33,12 @@ public class HttpAuth {
   }
 
   /**
-   * HttpAuth wraps the username and password for the rest api
+   * Username Password wraps the username and password for the rest api
    *
    * @param username username with rights to dremio rest api
    * @param password password for the username
    */
-  public HttpAuth(String username, String password) {
+  public UsernamePasswordAuth(String username, String password) {
     this.username = username;
     this.password = password;
   }

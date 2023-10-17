@@ -1,0 +1,23 @@
+[
+
+    {
+        "name": "com.dremio.support.diagnostics.stress.StressConfig",
+        "allDeclaredFields": true,
+        "allDeclaredMethods": true,
+        "allDeclaredConstructors": true
+    },
+    {
+        "name": "com.dremio.support.diagnostics.stress.QueryConfig",
+        "allDeclaredFields": true,
+        "allDeclaredMethods": true,
+        "allDeclaredConstructors": true
+    },
+    {
+        "name": "org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver",
+        "allDeclaredFields": true,
+        "allDeclaredMethods": true,
+        "allDeclaredConstructors": true
+    }
+
+]
+

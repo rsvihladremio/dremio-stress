@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -15,11 +15,10 @@ package com.dremio.support.diagnostics.stress;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Optional;
 
 public interface DremioApi {
 
-   /**
+  /**
    * runs a sql statement against the rest API
    *
    * @param sql sql string to submit to dremio

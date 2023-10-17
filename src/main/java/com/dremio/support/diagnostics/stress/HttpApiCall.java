@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -137,9 +137,7 @@ public class HttpApiCall implements ApiCall {
         }
       }
       ObjectMapper mapper = new ObjectMapper();
-      Map<String, Object> value =
-          mapper.readValue(content.toString(), new TypeReference<>() {
-          });
+      Map<String, Object> value = mapper.readValue(content.toString(), new TypeReference<>() {});
       HttpApiResponse response = new HttpApiResponse();
       response.setResponseCode(connection.getResponseCode());
       response.setMessage(connection.getResponseMessage());

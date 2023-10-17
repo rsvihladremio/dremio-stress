@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package com.dremio.support.diagnostics.stress;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -52,7 +51,7 @@ public class DremioV3Api implements DremioApi {
    *     body
    */
   public DremioV3Api(
-      ApiCall apiCall, HttpAuth auth, String baseUrl, FileMaker fileMaker, int timeoutSeconds)
+          ApiCall apiCall, UsernamePasswordAuth auth, String baseUrl, FileMaker fileMaker, int timeoutSeconds)
       throws IOException {
     this.apiCall = apiCall;
     this.fileMaker = fileMaker;
@@ -80,7 +79,7 @@ public class DremioV3Api implements DremioApi {
     this.baseUrl = baseUrl;
   }
 
-    /**
+  /**
    * checkJobStatus is useful for seeing if a sql operation is complete and if it succeeded
    *
    * @param jobId job idea to check
@@ -148,7 +147,7 @@ public class DremioV3Api implements DremioApi {
     Map<String, Object> params = new HashMap<>();
     params.put("sql", sql);
     if (!contexts.isEmpty()) {
-        params.put("context", contexts.toArray(new String[0]));
+      params.put("context", contexts.toArray(new String[0]));
     }
     String json = new ObjectMapper().writeValueAsString(params);
     HttpApiResponse response = apiCall.submitPost(url, this.baseHeaders, json);

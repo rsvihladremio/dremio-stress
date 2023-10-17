@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -24,10 +24,14 @@ public class ConnectDremioApi implements ConnectApi {
       String host,
       FileMaker fileMaker,
       Integer timeoutSeconds,
+      Protocol protocol,
       boolean ignoreSSL)
       throws IOException {
-    HttpApiCall apiCall = new HttpApiCall(ignoreSSL);
-    HttpAuth auth = new HttpAuth(username, password);
-    return new DremioV3Api(apiCall, auth, host, fileMaker, timeoutSeconds);
+    final UsernamePasswordAuth auth = new UsernamePasswordAuth(username, password);
+    if (protocol.equals(Protocol.HTTP)) {
+      HttpApiCall apiCall = new HttpApiCall(ignoreSSL);
+      return new DremioV3Api(apiCall, auth, host, fileMaker, timeoutSeconds);
+    }
+    return new DremioArrowFlightJDBCDriver(auth, host, ignoreSSL, timeoutSeconds);
   }
 }

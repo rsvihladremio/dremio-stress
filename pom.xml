@@ -3,17 +3,148 @@
 <modelVersion>4.0.0</modelVersion>
 
 <groupId>com.dremio.stress</groupId>
-<artifactId>my-app</artifactId>
-<version>1.0-SNAPSHOT</version>
+<artifactId>dremio-stress</artifactId>
+<version>0.4.0-SNAPSHOT</version>
 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
+    <mainClass>com.dremio.stress.DremioStress</mainClass>
+    <graal.version>17.0.8</graal.version>
+    <spotless.version>2.40.0</spotless.version>
+    <google-java-format.version>1.17.0</google-java-format.version>
+    <native.maven.plugin.version>0.9.27</native.maven.plugin.version>
     <maven-compiler-plugin-version>3.11.0</maven-compiler-plugin-version>
 </properties>
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                            <execution>
+                                <id>test-native</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <buildArgs>
+                                <arg>--no-fallback</arg>
+                                <arg>--enable-url-protocols=http</arg>
+                                <arg>--initialize-at-build-time==org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver</arg>
+                                <arg>-H:ReflectionConfigurationFiles=${project.basedir}/src/main/resources/reflectionconfig.json</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 <build>
     <plugins>
         <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <version>${spotless.version}</version>
+            <configuration>
+                <!-- optional: limit format enforcement to just the files changed by this feature branch -->
+                <ratchetFrom>origin/main</ratchetFrom>
+                <formats>
+                    <!-- you can define as many formats as you want, each is independent -->
+                    <format>
+                        <!-- define the files to apply to -->
+                        <includes>
+                            <include>*.md</include>
+                            <include>.gitignore</include>
+                        </includes>
+                        <!-- define the steps to apply to those files -->
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                        <indent>
+                            <tabs>true</tabs>
+                            <spacesPerTab>4</spacesPerTab>
+                        </indent>
+                    </format>
+                </formats>
+                <!-- define a language-specific format -->
+                <java>
+                    <!-- no need to specify files, inferred automatically, but you can if you want -->
+
+                    <!-- apply a specific flavor of google-java-format and reflow long strings -->
+                    <googleJavaFormat>
+                        <version>${google-java-format.version}</version>
+                        <style>GOOGLE</style>
+                        <reflowLongStrings>true</reflowLongStrings>
+                        <formatJavadoc>false</formatJavadoc>
+                        <groupArtifact>com.google.googlejavaformat:google-java-format</groupArtifact>
+                    </googleJavaFormat>
+
+                    <licenseHeader>
+                        <file>${project.basedir}/license-header</file>
+                    </licenseHeader>
+                </java>
+            </configuration>
+        </plugin>
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.10</version>
+            <executions>
+                <execution>
+                    <id>jacoco-check</id>
+                    <goals>
+                        <goal>check</goal>
+                    </goals>
+                    <configuration>
+                        <rules>
+                            <rule>
+                                <element>BUNDLE</element>
+                                <limits>
+                                    <limit>
+                                        <counter>INSTRUCTION</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.66</minimum>
+                                    </limit>
+                                </limits>
+                            </rule>
+                        </rules>
+                    </configuration>
+                </execution>
+                <execution>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>report</id>
+                    <phase>prepare-package</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.1.2</version>
+    </plugin>
+    <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
             <executions>
@@ -25,7 +156,7 @@
                     <configuration>
                         <archive>
                             <manifest>
-                                <mainClass>com.dremio.stress.DremioStress</mainClass>
+                                <mainClass>${mainClass}</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
@@ -55,6 +186,7 @@
         </plugin>
     </plugins>
 </build>
+
 <dependencies>
     <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
     <dependency>
@@ -62,8 +194,13 @@
         <artifactId>jackson-databind</artifactId>
         <version>2.15.3</version>
     </dependency>
-
-    <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+    <dependency>
+        <groupId>org.apache.arrow.driver</groupId>
+        <artifactId>flight-sql-jdbc-driver</artifactId>
+        <version>10.0.0</version>
+        <scope>system</scope>
+        <systemPath>${project.basedir}/src/main/resources/flight-sql-jdbc-driver-10.0.0.jar</systemPath>
+    </dependency>
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
@@ -78,7 +215,7 @@
     <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13.2</version>
         <scope>test</scope>
     </dependency>
 </dependencies>

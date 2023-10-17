@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Dremio
+ * Copyright 2023 Dremio
  *
  * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -14,21 +14,18 @@
 package com.dremio.stress;
 
 import com.dremio.support.diagnostics.stress.ConnectDremioApi;
+import com.dremio.support.diagnostics.stress.Protocol;
 import com.dremio.support.diagnostics.stress.StressExec;
 import java.io.File;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.ParseResult;
-import picocli.CommandLine.ScopeType;
-
-
 
 @CommandLine.Command(
     name = "stress",
     description =
         "using a defined JSON run a series of queries against dremio using various approaches",
-    footer = """
+    footer =
+        """
             ### Example stress.json
             {
               "queries": [
@@ -65,8 +62,8 @@ import picocli.CommandLine.ScopeType;
     subcommands = CommandLine.HelpCommand.class)
 public class DremioStress implements Callable<Integer> {
 
- public static void main(final String[] args) {
-    //Locale.setDefault(Locale.US);
+  public static void main(final String[] args) {
+    // Locale.setDefault(Locale.US);
     final DremioStress app = new DremioStress();
     final String rawVersion = app.getVersion();
     final String version;
@@ -79,8 +76,9 @@ public class DremioStress implements Callable<Integer> {
     final int rc = new CommandLine(app).execute(args);
     System.exit(rc);
   }
+
   @CommandLine.Parameters(index = "0", description = "The file to use for stress definitions")
-  private File yamlConfig;
+  private File jsonConfig;
 
   @CommandLine.Option(
       names = {"-q", "--max-queries-in-flight"},
@@ -108,11 +106,17 @@ public class DremioStress implements Callable<Integer> {
 
   /** http url for the rest api */
   @CommandLine.Option(
+          names = {"--protocol"},
+          description = "protocol to use HTTP or ODBC",
+          defaultValue = "HTTP")
+  private Protocol protocol;
+
+  /** http url for the rest api */
+  @CommandLine.Option(
       names = {"-l", "--host"},
       description =
           "the http url of the dremio server which is used to submit sql and create spaces",
-          defaultValue = "http://localhost:9047"
-          )
+      defaultValue = "http://localhost:9047")
   private String dremioHost;
 
   /** dremio user for the rest api */
@@ -131,9 +135,11 @@ public class DremioStress implements Callable<Integer> {
   private Package getPackage() {
     return this.getClass().getPackage();
   }
+
   private String getVersion() {
     return this.getPackage().getImplementationVersion();
   }
+
   /**
    * @return the exit code of the job 0 is success
    * @throws Exception when the job fails a general catch all exception
@@ -143,7 +149,8 @@ public class DremioStress implements Callable<Integer> {
     final StressExec r =
         new StressExec(
             new ConnectDremioApi(),
-            yamlConfig,
+            jsonConfig,
+            protocol,
             dremioHost,
             dremioUser,
             dremioPassword,
