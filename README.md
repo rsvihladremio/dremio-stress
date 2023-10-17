@@ -5,35 +5,22 @@ Simple tool to stress Dremio via ODBC and REST interfaces
 ## Run via the REST interface
 
 ```bash
-dremio-stress -user dremio -password dremio123 -url http://localhost:9047 -conf ./stress.json
+dremio-stress -user dremio -password dremio123 -l http://localhost:9047 ./stress.json
 ```
 
-## Run via ODBC 
+## Run via JDBC 
 
 
 ### Run via Docker
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress -protocol odbc -user dremio -password dremio123 -url "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=host.docker.internal;Port=32010;useEncryption=false"  -conf /mnt/stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress --protocol jdbc -u dremio -p dremio123 -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false"  /mnt/stress.json
 ```
 
-### Run ODBC Directly With a Binary
-
-#### Dependencies on Windows
-
-* Dremio ODBC Driver
-* X86\_64 (or AMD64) processor
-
-#### Dependencies on Mac and Linux
-
-* UnixODBC
-* Dremio ODBC Driver
-* X86\_64 (or AMD64) processor
-* Apple Silicon not supported use the Docker option
-
+### Run JDBC Directly With a Binary
 
 ```bash
-dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arrow Flight SQL ODBC Driver};ConnectionType=Direct;AuthenticationType=Plain;Host=localhost;Port=32010;useEncryption=false" -conf ./stress.json
+dremio-stress --protocol jdbc -u dremio -p dremio123 -l  "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false;" ./stress.json
 ```
 
 ## Example stress.json files
@@ -60,7 +47,7 @@ dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arr
 ```
 
 
-### Using queryGroups to preform several ops in order, the "schemops" group  will be called roughly 10% of the time
+### Using queryGroups to preform several ops in order, the "schemaops" group  will be called roughly 10% of the time
 
 ```json
 {
@@ -95,25 +82,21 @@ dremio-stress -protocol odbc -user dremio -password dremio123 -url  "Driver={Arr
 ## Flags
 
 ```bash
-  -conf string
-    	location of the stress.json to define the stress job. If one is not provided a default stress job is used (default "stress.json")
-  -duration duration
-    	duration of dremio-stress run (default 10m0s)
-  -max-concurrency int
-    	max number of concurrent queries (default 4)
-  -password string
-    	password to use at login (default "dremio123")
-  -protocol string
-    	communication protocol to use for stress http or odbc are available (default "http")
-  -skip-ssl
-    	works with '-protocol http' when using https
-  -timeout duration
-    	default timeout for queries (default 1m0s)
-  -url string
-    	http(s) URL used for '-protocol http' or a odbc connection string for '-protocol odbc' (default "http://localhost:9047")
-  -user string
-    	user to use at login (default "dremio")
-  -v	add more verbose output
+Usage: dremio-stress [-s] [-d=<durationSeconds>] [-l=<dremioHost>] [-p=<dremioPassword>] [-q=<maxQueriesInFlight>] [-t=<timeoutSeconds>] [-u=<dremioUser>] <yamlConfig> [COMMAND]                                
+using a defined JSON run a series of queries against dremio using various approaches                                                                                                                      
+      <yamlConfig>          The file to use for stress definitions                                                                                                                                        
+  -d, --duration-seconds=<durationSeconds>                                                                                                                                                                
+                            duration in seconds to run stress                                                                                                                                             
+  -l, --host=<dremioHost>   the http url of the dremio server which is used to submit sql and create spaces
+  -p, --password=<dremioPassword>
+                            the password of the user used to submit sql and create spaces to the rest api
+  -q, --max-queries-in-flight=<maxQueriesInFlight>
+                            max number of queries in flight (if possible)
+  -s, --skip-ssl-verification
+                            whether to skip ssl verification for queries or not
+  -t, --timeout-seconds=<timeoutSeconds>
+                            timeout for queries
+  -u, --user=<dremioUser>   the user used to submit sql and create spaces to the rest api
 ```
 
 ## Running Tests
