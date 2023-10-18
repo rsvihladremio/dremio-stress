@@ -205,6 +205,7 @@ public class StressExec {
                         () ->
                             String.format(
                                 "query %s failed with error %s", mappedSql, e.getMessage()));
+                    return;
                   }
                   if (response != null) {
                     Instant endTime = Instant.now();
