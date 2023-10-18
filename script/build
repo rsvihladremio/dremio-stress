@@ -4,5 +4,5 @@
 set -e
 
 cd "$(dirname "$0")/.."
-
-./mvnw clean package -Pnative -DskipTests=true
+./mvnw validate
+./mvnw clean package -DskipTests=true

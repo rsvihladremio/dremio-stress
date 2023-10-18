@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,7 +63,7 @@ public class StressExec {
       final Integer durationSeconds,
       final boolean skipSSLVerification) {
     this(
-        new Random(),
+        new SecureRandom(),
         connectApi,
             jsonConfig,
         protocol,
@@ -101,14 +102,16 @@ public class StressExec {
   }
 
   private final AtomicInteger counter = new AtomicInteger(0);
+  private final AtomicInteger submittedCounter = new AtomicInteger(0);
   private final AtomicInteger failureCounter = new AtomicInteger(0);
-  private final AtomicInteger completedCounter = new AtomicInteger(0);
+  private final AtomicInteger successfulCounter = new AtomicInteger(0);
   private final AtomicLong totalDurationMS = new AtomicLong(0);
 
   private final Timer timer = new Timer();
   long durationLastRun = 0;
-  long completedLastRun = 0;
+  long successfulLastRun = 0;
   int failuresLastRun = 0;
+  int submittedLastRun = 0;
 
   private void startReporting(Instant d) {
 
@@ -117,21 +120,26 @@ public class StressExec {
           public void run() {
             final Instant now = Instant.now();
             final long msElapsed = now.toEpochMilli() - d.toEpochMilli();
-            final int completed = completedCounter.get();
+            final int successful = successfulCounter.get();
             final int failures = failureCounter.get();
+            final int submitted = submittedCounter.get();
 
-            final long completedThisRun = completed - completedLastRun;
-            completedLastRun = completed;
+            final long successfulThisRun = successful - successfulLastRun;
+            successfulLastRun = successful;
             final long secondsElapsed = (msElapsed - durationLastRun) / 1000;
             durationLastRun = msElapsed;
             final int failuresThisRun = failures - failuresLastRun;
             failuresLastRun = failures;
+            final int submittedThisRun = submitted- submittedLastRun;
+            submittedLastRun = submitted;
             System.out.printf(
-                "queries completed: %d; queries completed per second: %.2f;"
-                    + " failure rate: %.2f - time elapsed: %s/%s%n",
-                completed,
-                (float) completedThisRun / secondsElapsed,
-                (float) failuresThisRun / completed,
+                "%s - queries submitted (total): %d; queries successful (total): %d; queries successful per second (current phase): %.2f;"
+                    + " failure rate: %.2f %% (current phase) - time elapsed: %s/%s%n",
+                Instant.now(),
+                submitted,
+                successful,
+                (float) successfulThisRun / secondsElapsed,
+                    ((float) failuresThisRun / submittedThisRun) * 100.0,
                 Human.getHumanDurationFromMillis(msElapsed),
                 Human.getHumanDurationFromMillis(durationTargetMS));
           }
@@ -189,10 +197,11 @@ public class StressExec {
                   Instant startTime = Instant.now();
                   DremioApiResponse response = null;
                   try {
-
+                    submittedCounter.incrementAndGet();
                     response = dremioApi.runSQL(mappedSql.queryText(), query.sqlContext());
                   } catch (final IOException e) {
-                    logger.fine(
+                    failureCounter.incrementAndGet();
+                    logger.info(
                         () ->
                             String.format(
                                 "query %s failed with error %s", mappedSql, e.getMessage()));
@@ -201,25 +210,27 @@ public class StressExec {
                     Instant endTime = Instant.now();
                     long queryTime = endTime.toEpochMilli() - startTime.toEpochMilli();
                     totalDurationMS.addAndGet(queryTime);
-                    if (response.isCreated()) {
-                      completedCounter.incrementAndGet();
-                      logger.fine(() -> String.format("query %s successful", mappedSql));
+                    if (response.isSuccessful()) {
+                      successfulCounter.incrementAndGet();
+                      logger.info(() -> String.format("query %s successful", mappedSql));
                     } else {
                       failureCounter.incrementAndGet();
                       final String errMsg = response.getErrorMessage();
-                      logger.fine(
+                      logger.info(
                           () -> String.format("query %s failed with error %s", mappedSql, errMsg));
                     }
+                  } else {
+                    failureCounter.incrementAndGet();
                   }
                 };
             executorService.submit(runnable);
             counter.incrementAndGet();
           }
-          if (queue.size() > this.maxQueriesInFlight * 100) {
+          if (queue.size() > this.maxQueriesInFlight * 10) {
             logger.fine("pausing as queue is too large");
-            while (queue.size() > this.maxQueriesInFlight * 10) {
+            while (queue.size() > this.maxQueriesInFlight * 5) {
               // take out time pausing while we let the queue clear out
-              Thread.sleep(100);
+              Thread.sleep(500);
             }
           }
         }
@@ -248,18 +259,23 @@ public class StressExec {
                 final Instant now = Instant.now();
                 long msElapsed = now.toEpochMilli() - d.toEpochMilli();
                 if (msElapsed > durationTargetMS) {
-                  final int currentCount = counter.get();
-                  final int completed = completedCounter.get();
+                  final int submitted = submittedCounter.get();
+                  final int successful = successfulCounter.get();
                   final int failures = failureCounter.get();
                   final long secondsElapsed = msElapsed / 1000;
-                  System.out.printf(
-                      "Completed Stress: queries submitted: %d; queries completed: %d; queries"
-                          + " completed per second: %.2f; failure rate: %.2f - time elapsed:"
+                  try {
+                    Thread.sleep(5 * 1000);
+                  } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                  }
+                  System.out.printf("%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
+                          + " successful per second: %.2f; failure rate: %.2f %% - time elapsed:"
                           + " %s/%s%n",
-                      currentCount,
-                      completed,
-                      (float) completed / secondsElapsed,
-                      (float) failures / completed,
+                              Instant.now(),
+                              submitted,
+                      successful,
+                      (float) submitted / secondsElapsed,
+                          ((float) failures / submitted) * 100.0,
                       Human.getHumanDurationFromMillis(msElapsed),
                       Human.getHumanDurationFromMillis(durationTargetMS));
                   executorService.shutdownNow();

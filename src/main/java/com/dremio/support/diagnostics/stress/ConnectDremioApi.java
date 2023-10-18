@@ -32,6 +32,6 @@ public class ConnectDremioApi implements ConnectApi {
       HttpApiCall apiCall = new HttpApiCall(ignoreSSL);
       return new DremioV3Api(apiCall, auth, host, fileMaker, timeoutSeconds);
     }
-    return new DremioArrowFlightJDBCDriver(auth, host, ignoreSSL, timeoutSeconds);
+    return new DremioArrowFlightJDBCDriver(host);
   }
 }

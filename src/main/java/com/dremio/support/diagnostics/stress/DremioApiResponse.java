@@ -34,7 +34,7 @@ public class DremioApiResponse {
    *
    * @param created boolean was it created or not
    */
-  public void setCreated(final boolean created) {
+  public void setSuccessful(final boolean created) {
     this.created = created;
   }
 
@@ -43,7 +43,7 @@ public class DremioApiResponse {
    *
    * @return if request was successful or not
    */
-  public boolean isCreated() {
+  public boolean isSuccessful() {
     return created;
   }
 

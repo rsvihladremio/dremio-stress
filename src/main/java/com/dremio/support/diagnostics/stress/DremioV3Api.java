@@ -140,69 +140,71 @@ public class DremioV3Api implements DremioApi {
    */
   @Override
   public DremioApiResponse runSQL(String sql, Collection<String> contexts) throws IOException {
-    if (sql == null || sql.trim().isEmpty()) {
-      throw new InvalidParameterException("jobId cannot be empty");
-    }
-    URL url = new URL(baseUrl + "/api/v3/sql");
-    Map<String, Object> params = new HashMap<>();
-    params.put("sql", sql);
-    if (!contexts.isEmpty()) {
-      params.put("context", contexts.toArray(new String[0]));
-    }
-    String json = new ObjectMapper().writeValueAsString(params);
-    HttpApiResponse response = apiCall.submitPost(url, this.baseHeaders, json);
-    if (response == null
-        || response.getResponse() == null
-        || !response.getResponse().containsKey("id")) {
-      String errorMessage = tryParseError(response);
-      if (errorMessage == null) {
-        errorMessage = String.format("id was not contained in the response '%s'", response);
+    try {
+      if (sql == null || sql.trim().isEmpty()) {
+        throw new InvalidParameterException("sql cannot be empty");
       }
+      URL url = new URL(baseUrl + "/api/v3/sql");
+      Map<String, Object> params = new HashMap<>();
+      params.put("sql", sql);
+      if (contexts != null && !contexts.isEmpty()) {
+        params.put("context", contexts.toArray(new String[0]));
+      }
+      String json = new ObjectMapper().writeValueAsString(params);
+      HttpApiResponse response = apiCall.submitPost(url, this.baseHeaders, json);
+      if (response == null
+              || response.getResponse() == null
+              || !response.getResponse().containsKey("id")) {
+        String errorMessage = tryParseError(response);
+        if (errorMessage == null) {
+          errorMessage = String.format("id was not contained in the response '%s'", response);
+        }
 
+        DremioApiResponse failed = new DremioApiResponse();
+        failed.setSuccessful(false);
+        failed.setErrorMessage(errorMessage);
+        return failed;
+      }
+      JobStatusResponse status = new JobStatusResponse();
+      status.setStatus("UNKNOWN");
+      Instant timeout = Instant.now().plus(timeoutSeconds, ChronoUnit.SECONDS);
+      while (!Instant.now().isAfter(timeout)) {
+        String jobId = String.valueOf(response.getResponse().get("id"));
+        status = this.checkJobStatus(jobId);
+        if (status == null) {
+          continue;
+        }
+        final String statusString = status.getStatus();
+        if ("COMPLETED".equals(statusString)) {
+          DremioApiResponse success = new DremioApiResponse();
+          success.setSuccessful(true);
+          return success;
+        }
+        if ("FAILED".equals(statusString) || "INVALID_STATE".equals(statusString) || "CANCELLED".equals(statusString)) {
+          DremioApiResponse failure = new DremioApiResponse();
+          failure.setErrorMessage(String.format("Response status is '%s'", status.getMessage()));
+          return failure;
+        }
+        try {
+          Thread.sleep(200);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
       DremioApiResponse failed = new DremioApiResponse();
-      failed.setCreated(false);
-      failed.setErrorMessage(errorMessage);
+      failed.setSuccessful(false);
+      if (status != null) {
+        failed.setErrorMessage(String.format("Response status is '%s'", status.getStatus()));
+      } else {
+        failed.setErrorMessage("unknown error");
+      }
+      return failed;
+    }catch(Exception ex){
+      DremioApiResponse failed = new DremioApiResponse();
+      failed.setSuccessful(false);
+      failed.setErrorMessage("unhandled exception: " +ex.getMessage());
       return failed;
     }
-    JobStatusResponse status = new JobStatusResponse();
-    status.setStatus("UNKNOWN");
-    Instant timeout = Instant.now().plus(timeoutSeconds, ChronoUnit.SECONDS);
-    while (!Instant.now().isAfter(timeout)) {
-      String jobId = String.valueOf(response.getResponse().get("id"));
-      status = this.checkJobStatus(jobId);
-      if (status == null) {
-        continue;
-      }
-      if ("COMPLETED".equals(status.getStatus())) {
-        DremioApiResponse success = new DremioApiResponse();
-        success.setCreated(true);
-        return success;
-      }
-      if ("FAILED".equals(status.getStatus())) {
-        if (status.getMessage().contains("already exists.")) {
-          DremioApiResponse alreadyExists = new DremioApiResponse();
-          alreadyExists.setCreated(true);
-          return alreadyExists;
-        }
-        DremioApiResponse success = new DremioApiResponse();
-        success.setCreated(false);
-        success.setErrorMessage(String.format("Response status is '%s'", status.getMessage()));
-        return success;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    DremioApiResponse failed = new DremioApiResponse();
-    failed.setCreated(false);
-    if (status != null) {
-      failed.setErrorMessage(String.format("Response status is '%s'", status.getStatus()));
-    } else {
-      failed.setErrorMessage("unknown error");
-    }
-    return failed;
   }
 
   /**

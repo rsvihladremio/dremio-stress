@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image-community:17
+FROM eclipse-temurin:17
 
 RUN mkdir -p /app
 WORKDIR /app
@@ -6,10 +6,6 @@ ARG VERSION=unknown
 ARG GIT_SHA=unknown
 COPY . /app
 
-RUN ./mvnw package -Pnative -DskipTests=true
+RUN ./mvnw validate && ./mvnw package -Pnative -DskipTests=true && echo "#!/usr/bin/env bash\n_JAVA_OPTIONS='--add-opens=java.base/java.nio=ALL-UNNAMED' java -jar $(ls ./target/dremio-stress-*-jar-with-dependencies.jar) \"\$@\"" >> /usr/bin/dremio-stress && chmod +x /usr/bin/dremio-stress
 
-FROM debian:12-slim
-WORKDIR /app/
-COPY --from=0 /app/target/dremio-stress /usr/bin/dremio-stress
-
-ENTRYPOINT ["/usr/bin/dremio-stress"]
+CMD ["bash", "/usr/bin/dremio-stress"]

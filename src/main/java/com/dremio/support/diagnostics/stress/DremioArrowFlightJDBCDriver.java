@@ -11,14 +11,14 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
     private final Connection connection;
     private final Object currentContextLock = new Object();
     private String currentContext = "";
-    public DremioArrowFlightJDBCDriver(UsernamePasswordAuth auth, String host, boolean ignoreSSL, Integer timeoutSeconds) {
+    public DremioArrowFlightJDBCDriver(String url) {
         try {
             Class.forName("org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
         try{
-        connection = DriverManager.getConnection(host + "&user=" + auth.getUsername() + "&password="+ auth.getPassword()+ "&disableCertificateVerification="+ ignoreSSL);
+        connection = DriverManager.getConnection(url);
             // use con here
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -38,7 +38,6 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
     public DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException {
         String context = String.join(".", table);
         var response = new DremioApiResponse();
-        response.setCreated(false);
         synchronized (currentContextLock){
             if (!currentContext.equals(context)){
                 currentContext = context;
@@ -48,6 +47,7 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
                         return response;
                     }
                     if (connection.createStatement().execute(sql)){
+                        response.setSuccessful(true);
                         response.setErrorMessage("");
                         return response;
                     }
@@ -61,12 +61,12 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
         }
         try {
             if (connection.createStatement().execute(sql)) {
+                response.setSuccessful(true);
                 response.setErrorMessage("");
-                return response;
             } else {
                 response.setErrorMessage("unhandled exception");
-                return response;
             }
+            return response;
         } catch (SQLException e) {
             response.setErrorMessage(e.getMessage());
             return response;

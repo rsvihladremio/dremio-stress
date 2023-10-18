@@ -13,12 +13,17 @@
  */
 package com.dremio.stress;
 
+import com.dremio.support.diagnostics.CustomLogFormatter;
 import com.dremio.support.diagnostics.stress.ConnectDremioApi;
 import com.dremio.support.diagnostics.stress.Protocol;
 import com.dremio.support.diagnostics.stress.StressExec;
 import java.io.File;
 import java.util.concurrent.Callable;
+import java.util.logging.*;
+
 import picocli.CommandLine;
+
+import static java.util.logging.Level.*;
 
 @CommandLine.Command(
     name = "stress",
@@ -146,6 +151,8 @@ public class DremioStress implements Callable<Integer> {
    */
   @Override
   public Integer call() throws Exception {
+    final Logger root = Logger.getLogger("");
+    setLogging(root);
     final StressExec r =
         new StressExec(
             new ConnectDremioApi(),
@@ -160,4 +167,56 @@ public class DremioStress implements Callable<Integer> {
             skipSSLVerification);
     return r.run();
   }
+
+    @CommandLine.Option( // W: Use explicit scoping instead of the default package private level
+          names = {"-v", "--verbose"},
+          description = "-v for info, -vv for debug, -vvv for trace")
+    boolean[] verbose; // W: Fields should be declared at the top of the class, before any method declarations, constructors, initializers or inner classes.
+
+    void setLogging(final Logger root) { // W: To avoid mistakes add a comment at the beginning of the setLogging method if you want a default access modifier
+    final Level targetLevel = getTargetLevel();
+    root.setLevel(targetLevel);
+    for (final Handler handler : root.getHandlers()) {
+      root.removeHandler(handler);
+    }
+    final CustomLogFormatter logFormatter = new CustomLogFormatter();
+    final StreamHandler sh = new StreamHandler(System.out, logFormatter); // W: Avoid variables with short names like sh
+    sh.setLevel(targetLevel);
+    root.addHandler(sh);
+    if (FINEST.equals(targetLevel)) {
+      root.info("MAX logging enabled");
+    } else if (FINER.equals(targetLevel)) {
+      root.info("TRACE logging enabled");
+    } else if (FINE.equals(targetLevel)) {
+      root.info("DEBUG logging enabled");
+    } else if (INFO.equals(targetLevel)) {
+      root.info("INFO logging enabled");
+    } else if (WARNING.equals(targetLevel)) {
+      root.info("WARN logging enabled");
+    } else if (SEVERE.equals(targetLevel)) {
+      root.info("ERROR logging enabled");
+    }
+  }
+
+  private static final int maxVerbosity = 3;
+  private static final int traceVerbosity = 2;
+  private static final int debubVerbosity = 1;
+
+  private Level getTargetLevel() {
+    final int verboseVs;
+    if (verbose != null) {
+      verboseVs = verbose.length;
+    } else {
+      return WARNING;
+    }
+    if (verboseVs > maxVerbosity) {
+      return FINEST;
+    } else if (verboseVs > traceVerbosity) {
+      return FINER;
+    } else if (verboseVs > debubVerbosity) {
+      return FINE;
+    }
+    return INFO;
+  }
+
 }
