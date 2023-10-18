@@ -199,7 +199,7 @@ public class StressExec {
                   try {
                     submittedCounter.incrementAndGet();
                     response = dremioApi.runSQL(mappedSql.queryText(), query.sqlContext());
-                  } catch (final IOException e) {
+                  } catch (final Exception e) {
                     failureCounter.incrementAndGet();
                     logger.info(
                         () ->
