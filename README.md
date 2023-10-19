@@ -5,7 +5,7 @@ Simple tool to stress Dremio via JDBC and REST interfaces written for Java 8 (bu
 ## Run via the REST interface
 
 ```bash
-java -jar dremio-stress.jar -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
+java -jar dremio-stress.jar --file-type STRESS_JSON -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
 ```
 
 ## Run via JDBC
@@ -14,13 +14,13 @@ java -jar dremio-stress.jar -u dremio  -p dremio123 -l http://localhost:9047 ./s
 ### Run via Docker
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress --file-type STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/stress.json
 ```
 
 ### Run JDBC Directly With a Binary
 
 ```bash
-java -jar dremio-stress.jar --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
+java -jar dremio-stress.jar --file-type STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
 ```
 
 ## Example stress.json files
@@ -82,13 +82,17 @@ java -jar dremio-stress.jar --protocol JDBC "jdbc:arrow-flight-sql://localhost:3
 ## Flags
 
 ```bash
-Usage: java -jar dremio-stress.jar [-sv] [-d=<durationSeconds>] [-l=<dremioUrl>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<maxQueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>]
- <jsonConfig> [COMMAND]
+Usage: java -jar dremio-stress.jar [-sv] [-d=<durationSeconds>] [-g=<queriesGeneratorFileType>] [-l=<dremioUrl>] [--limit-results=<limitResults>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<max
+QueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>] <jsonConfig> [COMMAND]
 using a defined JSON run a series of queries against dremio using various approaches
-      <jsonConfig>        The file to use for stress definitions
+      <jsonConfig>        The file to use for query definitions. Supports queries.json.gz, queries.json, or a directory of queries.json and a stress.json file with a defined workload (see example)
   -d, --duration-seconds=<durationSeconds>
                           duration in seconds to run stress
+  -g, --generator-type=<queriesGeneratorFileType>
+                          specify QUERIES_JSON or STRESS_JSON to specify the engine type
   -l, --url=<dremioUrl>   JDBC connection string or HTTP url to connect
+      --limit-results=<limitResults>
+                          limit results to the specified number assuming there is not already a LIMIT in the query. This is an easy way to just add some limits on the result set size
   -p, --http-password=<dremioHttpPassword>
                           the password of the user used to submit HTTP queries
       --protocol=<protocol>
