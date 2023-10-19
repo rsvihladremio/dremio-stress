@@ -20,7 +20,6 @@ public interface ConnectApi {
       String username,
       String password,
       String host,
-      FileMaker fileMaker,
       Integer timeoutSeconds,
       Protocol protocol,
       boolean ignoreSSL)

@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -30,11 +29,16 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class StressExec {
 
@@ -158,20 +162,48 @@ public class StressExec {
     }
   }
 
+  private void runQuery(DremioApi dremioApi, Query mappedSql) {
+    {
+      try {
+        Instant startTime = Instant.now();
+        DremioApiResponse response = null;
+        submittedCounter.incrementAndGet();
+        response = dremioApi.runSQL(mappedSql.getQueryText(), mappedSql.getContext());
+        if (response == null) {
+          throw new RuntimeException(
+              String.format("query %s failed with an empty response", mappedSql));
+        }
+        if (!response.isSuccessful()) {
+          final String errMsg = response.getErrorMessage();
+          throw new RuntimeException(
+              String.format("query %s failed with error %s", mappedSql, errMsg));
+        }
+        Instant endTime = Instant.now();
+        long queryTime = endTime.toEpochMilli() - startTime.toEpochMilli();
+        totalDurationMS.addAndGet(queryTime);
+        successfulCounter.incrementAndGet();
+        logger.info(() -> String.format("query %s successful", mappedSql));
+      } catch (final Exception e) {
+        failureCounter.incrementAndGet();
+        logger.info(
+            () ->
+                String.format(
+                    "query %s failed %s %s", mappedSql, e, ExceptionUtils.getStackTrace(e)));
+      }
+    }
+  }
   /**
    * The stress job
    *
    * @return exit code of the process
    */
   public int run() {
-    final FileMaker noOpFileMaker = () -> Paths.get("");
     try {
       final DremioApi dremioApi =
           this.connectApi.connect(
               dremioUser,
               dremioPassword,
               dremioHost,
-              noOpFileMaker,
               timeoutSeconds,
               protocol,
               skipSSLVerification);
@@ -193,38 +225,7 @@ public class StressExec {
           final QueryConfig query = queryPool.get(nextQuery);
           final List<Query> mappedSqls = mapSql(query, queryGroups);
           for (final Query mappedSql : mappedSqls) {
-            final Runnable runnable =
-                () -> {
-                  Instant startTime = Instant.now();
-                  DremioApiResponse response = null;
-                  try {
-                    submittedCounter.incrementAndGet();
-                    response = dremioApi.runSQL(mappedSql.getQueryText(), query.getSqlContext());
-                  } catch (final Exception e) {
-                    failureCounter.incrementAndGet();
-                    logger.info(
-                        () ->
-                            String.format(
-                                "query %s failed with error %s", mappedSql, e.getMessage()));
-                    return;
-                  }
-                  if (response != null) {
-                    Instant endTime = Instant.now();
-                    long queryTime = endTime.toEpochMilli() - startTime.toEpochMilli();
-                    totalDurationMS.addAndGet(queryTime);
-                    if (response.isSuccessful()) {
-                      successfulCounter.incrementAndGet();
-                      logger.info(() -> String.format("query %s successful", mappedSql));
-                    } else {
-                      failureCounter.incrementAndGet();
-                      final String errMsg = response.getErrorMessage();
-                      logger.info(
-                          () -> String.format("query %s failed with error %s", mappedSql, errMsg));
-                    }
-                  } else {
-                    failureCounter.incrementAndGet();
-                  }
-                };
+            final Runnable runnable = () -> runQuery(dremioApi, mappedSql);
             executorService.submit(runnable);
             counter.incrementAndGet();
           }
@@ -325,19 +326,32 @@ public class StressExec {
     } else if (q.getQuery() != null && !q.getQuery().isEmpty()) {
       rawQueries.add(q.getQuery());
     }
+    final Map<String, List<Object>> parameters;
+    if (q.getParameters() == null) {
+      parameters = new HashMap<>();
+    } else {
+      parameters = q.getParameters();
+    }
     final List<Query> mappedQueries = new ArrayList<>();
     for (final String sql : rawQueries) {
       final String[] tokens = sql.split(" ");
       final int words = tokens.length;
       for (int i = 0; i < words; i++) {
         final String word = tokens[i];
-        for (final Entry<String, Object[]> x : q.getParameters().entrySet()) {
+        for (final Entry<String, List<Object>> x : parameters.entrySet()) {
           if (word.equals(":" + x.getKey())) {
-            final int valueCount = x.getValue().length;
+            final int valueCount = x.getValue().size();
             if (valueCount > 0) {
               final int valueIndex = random.nextInt(valueCount);
-              final String v = String.valueOf(x.getValue()[valueIndex]);
+              final String v = String.valueOf(x.getValue().get(valueIndex));
               tokens[i] = v;
+            }
+          } else if (word.equals("':" + x.getKey() + "'")) {
+            final int valueCount = x.getValue().size();
+            if (valueCount > 0) {
+              final int valueIndex = random.nextInt(valueCount);
+              final String v = String.valueOf(x.getValue().get(valueIndex));
+              tokens[i] = "'" + v + "'";
             }
           }
         }

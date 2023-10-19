@@ -22,7 +22,6 @@ public class ConnectDremioApi implements ConnectApi {
       String username,
       String password,
       String host,
-      FileMaker fileMaker,
       Integer timeoutSeconds,
       Protocol protocol,
       boolean ignoreSSL)
@@ -30,7 +29,7 @@ public class ConnectDremioApi implements ConnectApi {
     final UsernamePasswordAuth auth = new UsernamePasswordAuth(username, password);
     if (protocol.equals(Protocol.HTTP)) {
       HttpApiCall apiCall = new HttpApiCall(ignoreSSL);
-      return new DremioV3Api(apiCall, auth, host, fileMaker, timeoutSeconds);
+      return new DremioV3Api(apiCall, auth, host, timeoutSeconds);
     }
     return new DremioArrowFlightJDBCDriver(host);
   }

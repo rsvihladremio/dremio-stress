@@ -28,13 +28,13 @@ public class DremioV3Api implements DremioApi {
   /** unmodifiable map of base headers used in all requests that are authenticated */
   private final Map<String, String> baseHeaders;
 
+  private static final Logger logger = Logger.getLogger(DremioV3Api.class.getName());
+
   // base url for the api typically http/https hostname and port. Does not include the ending /
   private final String baseUrl;
   // the actual http implementation
   private final ApiCall apiCall;
 
-  private static final Logger logger = Logger.getLogger(DremioV3Api.class.getName());
-  private final FileMaker fileMaker;
   private final int timeoutSeconds;
 
   /**
@@ -50,15 +50,9 @@ public class DremioV3Api implements DremioApi {
    * @throws IOException throws when unable to read the response body or unable to attach a request
    *     body
    */
-  public DremioV3Api(
-      ApiCall apiCall,
-      UsernamePasswordAuth auth,
-      String baseUrl,
-      FileMaker fileMaker,
-      int timeoutSeconds)
+  public DremioV3Api(ApiCall apiCall, UsernamePasswordAuth auth, String baseUrl, int timeoutSeconds)
       throws IOException {
     this.apiCall = apiCall;
-    this.fileMaker = fileMaker;
     this.timeoutSeconds = timeoutSeconds;
     Map<String, String> headers = new HashMap<>();
     // working with json
@@ -96,29 +90,26 @@ public class DremioV3Api implements DremioApi {
     if (jobId == null || jobId.trim().isEmpty()) {
       throw new InvalidParameterException("jobId cannot be empty");
     }
+
     // v3 job api
     URL url = new URL(this.baseUrl + "/api/v3/job/" + jobId);
     // setup headers
     HttpApiResponse response = apiCall.submitGet(url, this.baseHeaders);
     // jobState is the necessary key
-    if (response == null
-        || response.getResponse() == null
-        || !response.getResponse().containsKey("jobState")) {
-      String error = tryParseError(response);
-      if (error != null) {
-        JobStatusResponse jobStatusResponse = new JobStatusResponse();
-        jobStatusResponse.setStatus("UNKNOWN");
-        jobStatusResponse.setMessage(error);
-        return jobStatusResponse;
-      }
-      return null;
+    if (response == null) {
+      throw new RuntimeException("no valid response");
+    }
+    if (response.getResponse() == null) {
+      throw new RuntimeException("no valid response body");
+    }
+    if (!response.getResponse().containsKey("jobState")) {
+      throw new RuntimeException("no jobState key present");
     }
     Object jobState = response.getResponse().get("jobState");
     if (jobState == null) {
-      JobStatusResponse jobStatus = new JobStatusResponse();
-      jobStatus.setStatus("UNKNOWN");
-      return jobStatus;
+      throw new RuntimeException("no valid jobState key present");
     }
+    logger.info(() -> String.format("job %s job state %s", jobId, response.getResponse()));
     // for failed jobs
     if ("FAILED".equals(jobState)) {
       String error =
@@ -156,30 +147,26 @@ public class DremioV3Api implements DremioApi {
       }
       String json = new ObjectMapper().writeValueAsString(params);
       HttpApiResponse response = apiCall.submitPost(url, this.baseHeaders, json);
-      if (response == null
-          || response.getResponse() == null
-          || !response.getResponse().containsKey("id")) {
-        String errorMessage = tryParseError(response);
-        if (errorMessage == null) {
-          errorMessage = String.format("id was not contained in the response '%s'", response);
-        }
-
-        DremioApiResponse failed = new DremioApiResponse();
-        failed.setSuccessful(false);
-        failed.setErrorMessage(errorMessage);
-        return failed;
+      if (response == null) {
+        throw new RuntimeException("missing response");
       }
-      JobStatusResponse status = new JobStatusResponse();
-      status.setStatus("UNKNOWN");
+      if (response.getResponse() == null) {
+        throw new RuntimeException("missing response body");
+      }
+      if (!response.getResponse().containsKey("id")) {
+        throw new RuntimeException("id");
+      }
+
       Instant timeout = Instant.now().plus(timeoutSeconds, ChronoUnit.SECONDS);
+      String jobId = String.valueOf(response.getResponse().get("id"));
       while (!Instant.now().isAfter(timeout)) {
-        String jobId = String.valueOf(response.getResponse().get("id"));
-        status = this.checkJobStatus(jobId);
+        JobStatusResponse status = this.checkJobStatus(jobId);
         if (status == null) {
-          continue;
+          throw new RuntimeException("unexpected job status critical error");
         }
         final String statusString = status.getStatus();
         if ("COMPLETED".equals(statusString)) {
+          logger.info(() -> statusString);
           DremioApiResponse success = new DremioApiResponse();
           success.setSuccessful(true);
           return success;
@@ -188,6 +175,7 @@ public class DremioV3Api implements DremioApi {
             || "INVALID_STATE".equals(statusString)
             || "CANCELLED".equals(statusString)) {
           DremioApiResponse failure = new DremioApiResponse();
+          failure.setSuccessful(false);
           failure.setErrorMessage(String.format("Response status is '%s'", status.getMessage()));
           return failure;
         }
@@ -197,13 +185,10 @@ public class DremioV3Api implements DremioApi {
           throw new RuntimeException(e);
         }
       }
+      // hit the timeout
       DremioApiResponse failed = new DremioApiResponse();
       failed.setSuccessful(false);
-      if (status != null) {
-        failed.setErrorMessage(String.format("Response status is '%s'", status.getStatus()));
-      } else {
-        failed.setErrorMessage("unknown error");
-      }
+      failed.setErrorMessage("timeout hit");
       return failed;
     } catch (Exception ex) {
       DremioApiResponse failed = new DremioApiResponse();
@@ -217,14 +202,5 @@ public class DremioV3Api implements DremioApi {
   @Override
   public String getUrl() {
     return this.baseUrl;
-  }
-
-  private String tryParseError(HttpApiResponse response) {
-    if (response != null
-        && response.getResponse() != null
-        && response.getResponse().containsKey("errorMessage")) {
-      return String.valueOf(response.getResponse().get("errorMessage"));
-    }
-    return null;
   }
 }

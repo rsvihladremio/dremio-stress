@@ -4,6 +4,12 @@
 set -e
 
 cd "$(dirname "$0")/.."
+
+echo "==> Formatting files"
+./mvnw com.coveo:fmt-maven-plugin:format
+
+echo "==> Validation files"
 ./mvnw validate
+echo "==> Building jar"
 ./mvnw clean package -DskipTests=true
 mv $(ls target/dremio-stress-*-jar-with-dependencies.jar) target/dremio-stress.jar

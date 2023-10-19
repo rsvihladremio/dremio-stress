@@ -53,45 +53,41 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
    */
   @Override
   public DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException {
-    String context = String.join(".", table);
-    final DremioApiResponse response = new DremioApiResponse();
+    final String context;
+    if (table == null) {
+      context = "";
+    } else {
+      context = String.join(".", table);
+    }
     synchronized (currentContextLock) {
       if (!currentContext.equals(context)) {
         currentContext = context;
+        logger.info(() -> String.format("changing context %s", context));
         try {
-          logger.info(() -> String.format("changing context %s", context));
           if (!connection.createStatement().execute("USE " + context)) {
-            response.setErrorMessage("failed using USE");
-            response.setSuccessful(false);
-            return response;
+            throw new RuntimeException("failed using USE");
           }
-          if (connection.createStatement().execute(sql)) {
-            response.setSuccessful(true);
-            response.setErrorMessage("");
-            return response;
+          final boolean success = connection.createStatement().execute(sql);
+          if (!success) {
+            throw new RuntimeException("unhandled exception executing sql");
           }
-          response.setSuccessful(false);
-          response.setErrorMessage("unhandled error executing sql");
+          final DremioApiResponse response = new DremioApiResponse();
+          response.setSuccessful(true);
           return response;
-        } catch (SQLException e) {
-          response.setErrorMessage(e.getMessage());
-          return response;
+        } catch (SQLException ex) {
+          throw new RuntimeException(ex);
         }
       }
     }
     try {
       if (connection.createStatement().execute(sql)) {
+        final DremioApiResponse response = new DremioApiResponse();
         response.setSuccessful(true);
-        response.setErrorMessage("");
-      } else {
-        response.setSuccessful(false);
-        response.setErrorMessage("unhandled exception");
+        return response;
       }
-      return response;
+      throw new RuntimeException("unhandled exception");
     } catch (SQLException e) {
-      response.setSuccessful(false);
-      response.setErrorMessage(e.getMessage());
-      return response;
+      throw new RuntimeException(e);
     }
   }
 
