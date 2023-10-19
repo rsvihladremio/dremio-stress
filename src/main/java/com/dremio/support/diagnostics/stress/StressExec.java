@@ -22,11 +22,13 @@ import java.security.InvalidParameterException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -45,6 +47,7 @@ public class StressExec {
   private static final Logger logger = Logger.getLogger(StressExec.class.getName());
   private final Random random;
   private final File jsonConfig;
+  private final QueriesGeneratorFileType fileType;
   private final Protocol protocol;
   private final String dremioHost;
   private final String dremioUser;
@@ -58,6 +61,7 @@ public class StressExec {
   public StressExec(
       final ConnectApi connectApi,
       final File jsonConfig,
+      final QueriesGeneratorFileType fileType,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -70,6 +74,7 @@ public class StressExec {
         new SecureRandom(),
         connectApi,
         jsonConfig,
+        fileType,
         protocol,
         dremioHost,
         dremioUser,
@@ -84,6 +89,7 @@ public class StressExec {
       final Random random,
       final ConnectApi connectApi,
       final File jsonConfig,
+      final QueriesGeneratorFileType fileType,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -95,6 +101,7 @@ public class StressExec {
     this.random = random;
     this.connectApi = connectApi;
     this.jsonConfig = jsonConfig;
+    this.fileType = fileType;
     this.protocol = protocol;
     this.dremioHost = dremioHost;
     this.dremioUser = dremioUser;
@@ -156,6 +163,7 @@ public class StressExec {
   private StressConfig getConfig() {
     try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
       final ObjectMapper objectMapper = new ObjectMapper();
+      // TODO cache value
       return objectMapper.readValue(st, StressConfig.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -192,6 +200,34 @@ public class StressExec {
       }
     }
   }
+
+  private List<QueryConfig> getQueries() {
+    if (this.fileType == QueriesGeneratorFileType.STRESS_JSON) {
+      final StressConfig config = getConfig();
+      return getQueryConfigs(config);
+    } else {
+      final ObjectMapper objectMapper = new ObjectMapper();
+      try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
+        try (Scanner scanner = new Scanner(st)) {
+          List<QueryConfig> configs = new ArrayList<>();
+          while (scanner.hasNextLine()) {
+            final String line = scanner.nextLine();
+            final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
+            final QueryConfig query = new QueryConfig();
+            query.setFrequency(1);
+            query.setQuery(row.getQueryText());
+            // TODO this is wrong of course, need to handle splitting on . but not on . that are
+            // quoted..should be fun
+            query.setSqlContext(Arrays.asList(row.getContext()));
+            configs.add(query);
+          }
+          return configs;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
   /**
    * The stress job
    *
@@ -208,11 +244,10 @@ public class StressExec {
               protocol,
               skipSSLVerification);
 
-      final StressConfig config = getConfig();
       final BlockingQueue<Runnable> queue =
           new LinkedBlockingQueue<>(this.maxQueriesInFlight * 1000);
-      final List<QueryConfig> queryPool = getQueryConfigs(config);
-      final Map<String, QueryGroup> queryGroups = getStringQueryGroupMap(config);
+      final List<QueryConfig> queryPool = getQueries();
+      final Map<String, QueryGroup> queryGroups = getStringQueryGroupMap();
       final ExecutorService executorService =
           new ThreadPoolExecutor(
               this.maxQueriesInFlight, this.maxQueriesInFlight, 0L, TimeUnit.MILLISECONDS, queue);
@@ -290,16 +325,19 @@ public class StressExec {
         .start();
   }
 
-  private static Map<String, QueryGroup> getStringQueryGroupMap(StressConfig config) {
+  private Map<String, QueryGroup> getStringQueryGroupMap() {
     final Map<String, QueryGroup> queryGroups = new HashMap<>();
-    if (config.getQueryGroups() != null) {
-      for (final QueryGroup g : config.getQueryGroups()) {
-        if (queryGroups.containsKey(g.getName())) {
-          throw new InvalidParameterException(
-              "unable to read stress yaml because there are least two query groups named "
-                  + g.getName());
+    if (this.fileType == QueriesGeneratorFileType.STRESS_JSON) {
+      final StressConfig config = getConfig();
+      if (config.getQueryGroups() != null) {
+        for (final QueryGroup g : config.getQueryGroups()) {
+          if (queryGroups.containsKey(g.getName())) {
+            throw new InvalidParameterException(
+                "unable to read stress yaml because there are least two query groups named "
+                    + g.getName());
+          }
+          queryGroups.put(g.getName(), g);
         }
-        queryGroups.put(g.getName(), g);
       }
     }
     return queryGroups;
@@ -334,31 +372,35 @@ public class StressExec {
     }
     final List<Query> mappedQueries = new ArrayList<>();
     for (final String sql : rawQueries) {
-      final String[] tokens = sql.split(" ");
-      final int words = tokens.length;
-      for (int i = 0; i < words; i++) {
-        final String word = tokens[i];
-        for (final Entry<String, List<Object>> x : parameters.entrySet()) {
-          if (word.equals(":" + x.getKey())) {
-            final int valueCount = x.getValue().size();
-            if (valueCount > 0) {
-              final int valueIndex = random.nextInt(valueCount);
-              final String v = String.valueOf(x.getValue().get(valueIndex));
-              tokens[i] = v;
-            }
-          } else if (word.equals("':" + x.getKey() + "'")) {
-            final int valueCount = x.getValue().size();
-            if (valueCount > 0) {
-              final int valueIndex = random.nextInt(valueCount);
-              final String v = String.valueOf(x.getValue().get(valueIndex));
-              tokens[i] = "'" + v + "'";
+      final Query query = new Query();
+      query.setContext(q.getSqlContext());
+      if (parameters.size() > 0) {
+        final String[] tokens = sql.split(" ");
+        final int words = tokens.length;
+        for (int i = 0; i < words; i++) {
+          final String word = tokens[i];
+          for (final Entry<String, List<Object>> x : parameters.entrySet()) {
+            if (word.equals(":" + x.getKey())) {
+              final int valueCount = x.getValue().size();
+              if (valueCount > 0) {
+                final int valueIndex = random.nextInt(valueCount);
+                final String v = String.valueOf(x.getValue().get(valueIndex));
+                tokens[i] = v;
+              }
+            } else if (word.equals("':" + x.getKey() + "'")) {
+              final int valueCount = x.getValue().size();
+              if (valueCount > 0) {
+                final int valueIndex = random.nextInt(valueCount);
+                final String v = String.valueOf(x.getValue().get(valueIndex));
+                tokens[i] = "'" + v + "'";
+              }
             }
           }
         }
+        query.setQueryText(String.join(" ", tokens));
+      } else {
+        query.setQueryText(sql);
       }
-      final Query query = new Query();
-      query.setQueryText(String.join(" ", tokens));
-      query.setContext(q.getSqlContext());
       mappedQueries.add(query);
     }
     return mappedQueries;

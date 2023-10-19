@@ -15,9 +15,10 @@ package com.dremio.stress;
 
 import static java.util.logging.Level.*;
 
-import com.dremio.support.diagnostics.CustomLogFormatter;
 import com.dremio.support.diagnostics.stress.ConnectDremioApi;
+import com.dremio.support.diagnostics.stress.CustomLogFormatter;
 import com.dremio.support.diagnostics.stress.Protocol;
+import com.dremio.support.diagnostics.stress.QueriesGeneratorFileType;
 import com.dremio.support.diagnostics.stress.StressExec;
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -83,7 +84,10 @@ public class DremioStress implements Callable<Integer> {
     System.exit(rc);
   }
 
-  @CommandLine.Parameters(index = "0", description = "The file to use for stress definitions")
+  @CommandLine.Parameters(
+      index = "0",
+      description =
+          "The file to use for query definitions. Supports queries.json.gz, queries.json, or a directory of queries.json and a stress.json file with a defined workload (see example)")
   private File jsonConfig;
 
   @CommandLine.Option(
@@ -136,6 +140,20 @@ public class DremioStress implements Callable<Integer> {
       description = "the password of the user used to submit HTTP queries")
   private String dremioHttpPassword;
 
+  /** limit queries results to said limit */
+  @CommandLine.Option(
+      names = {"--limit-results"},
+      interactive = false,
+      description =
+          "limit results to the specified number assuming there is not already a LIMIT in the query. This is an easy way to just add some limits on the result set size")
+  private Integer limitResults;
+
+  /** query generator file type aka what file type to use */
+  @CommandLine.Option(
+      names = {"--generator-type", "-g"},
+      description = "specify QUERIES_JSON or STRESS_JSON to specify the engine type")
+  private QueriesGeneratorFileType queriesGeneratorFileType;
+
   private Package getPackage() {
     return this.getClass().getPackage();
   }
@@ -156,6 +174,7 @@ public class DremioStress implements Callable<Integer> {
         new StressExec(
             new ConnectDremioApi(),
             jsonConfig,
+            queriesGeneratorFileType,
             protocol,
             dremioUrl,
             dremioHttpUser,
