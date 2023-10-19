@@ -15,4 +15,23 @@ package com.dremio.support.diagnostics.stress;
 
 import java.util.Collection;
 
-public record Query(String queryText, Collection<String> context) {}
+public class Query {
+  private String queryText;
+  private Collection<String> context;
+
+  public String getQueryText() {
+    return queryText;
+  }
+
+  public void setQueryText(String queryText) {
+    this.queryText = queryText;
+  }
+
+  public Collection<String> getContext() {
+    return context;
+  }
+
+  public void setContext(Collection<String> context) {
+    this.context = context;
+  }
+}

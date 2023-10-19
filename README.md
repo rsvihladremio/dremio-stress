@@ -1,11 +1,11 @@
 # dremio-stress
 
-Simple tool to stress Dremio via ODBC and REST interfaces
+Simple tool to stress Dremio via JDBC and REST interfaces written for Java 8 (but works with 17)
 
 ## Run via the REST interface
 
 ```bash
-dremio-stress -user dremio -password dremio123 -l http://localhost:9047 ./stress.json
+java -jar dremio-stress.jar -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
 ```
 
 ## Run via JDBC
@@ -14,13 +14,13 @@ dremio-stress -user dremio -password dremio123 -l http://localhost:9047 ./stress
 ### Run via Docker
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress --protocol jdbc -u dremio -p dremio123 -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false"  /mnt/stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/stress.json
 ```
 
 ### Run JDBC Directly With a Binary
 
 ```bash
-dremio-stress --protocol jdbc -u dremio -p dremio123 -l  "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false;" ./stress.json
+java -jar dremio-stress.jar --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
 ```
 
 ## Example stress.json files
@@ -82,24 +82,30 @@ dremio-stress --protocol jdbc -u dremio -p dremio123 -l  "jdbc:arrow-flight-sql:
 ## Flags
 
 ```bash
-Usage: dremio-stress [-s] [-d=<durationSeconds>] [-l=<dremioHost>] [-p=<dremioPassword>] [-q=<maxQueriesInFlight>] [-t=<timeoutSeconds>] [-u=<dremioUser>] <yamlConfig> [COMMAND]
+Usage: java -jar dremio-stress.jar [-sv] [-d=<durationSeconds>] [-l=<dremioUrl>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<maxQueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>]
+ <jsonConfig> [COMMAND]
 using a defined JSON run a series of queries against dremio using various approaches
-	<yamlConfig>          The file to use for stress definitions
--d, --duration-seconds=<durationSeconds>
-							duration in seconds to run stress
--l, --host=<dremioHost>   the http url of the dremio server which is used to submit sql and create spaces
--p, --password=<dremioPassword>
-							the password of the user used to submit sql and create spaces to the rest api
--q, --max-queries-in-flight=<maxQueriesInFlight>
-							max number of queries in flight (if possible)
--s, --skip-ssl-verification
-							whether to skip ssl verification for queries or not
--t, --timeout-seconds=<timeoutSeconds>
-							timeout for queries
--u, --user=<dremioUser>   the user used to submit sql and create spaces to the rest api
+      <jsonConfig>        The file to use for stress definitions
+  -d, --duration-seconds=<durationSeconds>
+                          duration in seconds to run stress
+  -l, --url=<dremioUrl>   JDBC connection string or HTTP url to connect
+  -p, --http-password=<dremioHttpPassword>
+                          the password of the user used to submit HTTP queries
+      --protocol=<protocol>
+                          protocol to use HTTP or JDBC
+  -q, --max-queries-in-flight=<maxQueriesInFlight>
+                          max number of queries in flight (if possible)
+  -s, --http-skip-ssl-verification
+                          whether to skip ssl verification for HTTP queries or not
+  -t, --http-timeout-seconds=<httpTimeoutSeconds>
+                          HTTP timeout for queries
+  -u, --http-user=<dremioHttpUser>
+                          the user used to submit HTTP queries
+  -v, --verbose           -v for info, -vv for debug, -vvv for trace
 ```
 
 ## Running Tests
 
 * Install docker or have it running
+* JDK 8+
 * ./script/test

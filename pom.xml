@@ -7,59 +7,24 @@
 <version>0.4.0-SNAPSHOT</version>
 
 <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <mainClass>com.dremio.stress.DremioStress</mainClass>
-    <graal.version>17.0.8</graal.version>
-    <spotless.version>2.40.0</spotless.version>
-    <google-java-format.version>1.17.0</google-java-format.version>
-    <native.maven.plugin.version>0.9.27</native.maven.plugin.version>
     <maven-compiler-plugin-version>3.11.0</maven-compiler-plugin-version>
+    <maven-compiler-plugin-java-version>1.8</maven-compiler-plugin-java-version>
+    <mainClass>com.dremio.stress.DremioStress</mainClass>
 </properties>
 <build>
     <plugins>
         <plugin>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <version>${spotless.version}</version>
-            <configuration>
-                <!-- optional: limit format enforcement to just the files changed by this feature branch -->
-                <ratchetFrom>origin/main</ratchetFrom>
-                <formats>
-                    <!-- you can define as many formats as you want, each is independent -->
-                    <format>
-                        <!-- define the files to apply to -->
-                        <includes>
-                            <include>*.md</include>
-                            <include>.gitignore</include>
-                        </includes>
-                        <!-- define the steps to apply to those files -->
-                        <trimTrailingWhitespace/>
-                        <endWithNewline/>
-                        <indent>
-                            <tabs>true</tabs>
-                            <spacesPerTab>4</spacesPerTab>
-                        </indent>
-                    </format>
-                </formats>
-                <!-- define a language-specific format -->
-                <java>
-                    <!-- no need to specify files, inferred automatically, but you can if you want -->
-
-                    <!-- apply a specific flavor of google-java-format and reflow long strings -->
-                    <googleJavaFormat>
-                        <version>${google-java-format.version}</version>
-                        <style>GOOGLE</style>
-                        <reflowLongStrings>true</reflowLongStrings>
-                        <formatJavadoc>false</formatJavadoc>
-                        <groupArtifact>com.google.googlejavaformat:google-java-format</groupArtifact>
-                    </googleJavaFormat>
-
-                    <licenseHeader>
-                        <file>${project.basedir}/license-header</file>
-                    </licenseHeader>
-                </java>
-            </configuration>
+            <groupId>com.coveo</groupId>
+            <artifactId>fmt-maven-plugin</artifactId>
+            <version>2.9.1</version>
+            <executions>
+                                <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+            </executions>
         </plugin>
         <plugin>
             <groupId>org.jacoco</groupId>
@@ -155,6 +120,8 @@
             <!-- annotationProcessorPaths requires maven-compiler-plugin version 3.5 or higher -->
             <version>${maven-compiler-plugin-version}</version>
             <configuration>
+                <source>${maven-compiler-plugin-java-version}</source>
+                <target>${maven-compiler-plugin-java-version}</target>
                 <annotationProcessorPaths>
                     <path>
                         <groupId>info.picocli</groupId>

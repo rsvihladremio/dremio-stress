@@ -13,6 +13,8 @@
  */
 package com.dremio.stress;
 
+import static java.util.logging.Level.*;
+
 import com.dremio.support.diagnostics.CustomLogFormatter;
 import com.dremio.support.diagnostics.stress.ConnectDremioApi;
 import com.dremio.support.diagnostics.stress.Protocol;
@@ -20,49 +22,48 @@ import com.dremio.support.diagnostics.stress.StressExec;
 import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.logging.*;
-
 import picocli.CommandLine;
 
-import static java.util.logging.Level.*;
-
 @CommandLine.Command(
-    name = "stress",
+    name = "java -jar dremio-stress.jar",
     description =
         "using a defined JSON run a series of queries against dremio using various approaches",
     footer =
-        """
-            ### Example stress.json
-            {
-              "queries": [
-                {
-                  "query": "select * from  samples.\\"samples.dremio.com\\".\\"nyc-taxi-trips\\" where passenger_count = :count",
-                  "frequency": 1,
-                  "parameters": {
-                    "count": [
-                      1,
-                      2,
-                      3,
-                      4
-                    ]
-                  }
-                },
-                {
-                  "query": "select * FROM Samples.\\"samples.dremio.com\\".\\"SF weather 2018-2019.csv\\" where \\"DATE\\" between ':start' and ':end'",
-                  "frequency": 1,
-                  "parameters": {
-                    "start": [
-                      "2018-02-01"
-                    ],
-                    "end": [
-                      "2018-02-10",
-                      "2018-02-11",
-                      "2018-02-12"
-                    ]
-                  }
-                }
-              ]
-            }
-            """,
+        "### Example stress.json\n"
+            + "            {\n"
+            + "              \"queries\": [\n"
+            + "                {\n"
+            + "                  \"query\": \"select * from "
+            + " samples.\\\"samples.dremio.com\\\".\\\"nyc-taxi-trips\\\" where passenger_count ="
+            + " :count\",\n"
+            + "                  \"frequency\": 1,\n"
+            + "                  \"parameters\": {\n"
+            + "                    \"count\": [\n"
+            + "                      1,\n"
+            + "                      2,\n"
+            + "                      3,\n"
+            + "                      4\n"
+            + "                    ]\n"
+            + "                  }\n"
+            + "                },\n"
+            + "                {\n"
+            + "                  \"query\": \"select * FROM"
+            + " Samples.\\\"samples.dremio.com\\\".\\\"SF weather 2018-2019.csv\\\" where"
+            + " \\\"DATE\\\" between ':start' and ':end',\n"
+            + "                  \"frequency\": 1,\n"
+            + "                  \"parameters\": {\n"
+            + "                    \"start\": [\n"
+            + "                      \"2018-02-01\"\n"
+            + "                    ],\n"
+            + "                    \"end\": [\n"
+            + "                      \"2018-02-10\",\n"
+            + "                      \"2018-02-11\",\n"
+            + "                      \"2018-02-12\"\n"
+            + "                    ]\n"
+            + "                  }\n"
+            + "                }\n"
+            + "              ]\n"
+            + "            }\n",
     usageHelpWidth = 300,
     subcommands = CommandLine.HelpCommand.class)
 public class DremioStress implements Callable<Integer> {
@@ -92,16 +93,16 @@ public class DremioStress implements Callable<Integer> {
   private Integer maxQueriesInFlight;
 
   @CommandLine.Option(
-      names = {"-t", "--timeout-seconds"},
-      description = "timeout for queries",
-      defaultValue = "60")
-  private Integer timeoutSeconds;
+      names = {"-t", "--http-timeout-seconds"},
+      description = "HTTP timeout for queries",
+      defaultValue = "600")
+  private Integer httpTimeoutSeconds;
 
   @CommandLine.Option(
-      names = {"-s", "--skip-ssl-verification"},
-      description = "whether to skip ssl verification for queries or not",
+      names = {"-s", "--http-skip-ssl-verification"},
+      description = "whether to skip ssl verification for HTTP queries or not",
       defaultValue = "false")
-  private boolean skipSSLVerification;
+  private boolean skipHttpSSLVerification;
 
   @CommandLine.Option(
       names = {"-d", "--duration-seconds"},
@@ -109,33 +110,31 @@ public class DremioStress implements Callable<Integer> {
       defaultValue = "600")
   private Integer durationSeconds;
 
-  /** http url for the rest api */
+  /** protocol to use */
   @CommandLine.Option(
-          names = {"--protocol"},
-          description = "protocol to use HTTP or ODBC",
-          defaultValue = "HTTP")
+      names = {"--protocol"},
+      description = "protocol to use HTTP or JDBC",
+      defaultValue = "HTTP")
   private Protocol protocol;
 
-  /** http url for the rest api */
+  /** http url or jdbc connection string */
   @CommandLine.Option(
-      names = {"-l", "--host"},
-      description =
-          "the http url of the dremio server which is used to submit sql and create spaces",
-      defaultValue = "http://localhost:9047")
-  private String dremioHost;
+      names = {"-l", "--url"},
+      description = "JDBC connection string or HTTP url to connect")
+  private String dremioUrl;
 
   /** dremio user for the rest api */
   @CommandLine.Option(
-      names = {"--user", "-u"},
-      description = "the user used to submit sql and create spaces to the rest api")
-  private String dremioUser;
+      names = {"--http-user", "-u"},
+      description = "the user used to submit HTTP queries")
+  private String dremioHttpUser;
 
   /** dremio password for the api user */
   @CommandLine.Option(
-      names = {"--password", "-p"},
+      names = {"--http-password", "-p"},
       interactive = false,
-      description = "the password of the user used to submit sql and create spaces to the rest api")
-  private String dremioPassword;
+      description = "the password of the user used to submit HTTP queries")
+  private String dremioHttpPassword;
 
   private Package getPackage() {
     return this.getClass().getPackage();
@@ -158,29 +157,35 @@ public class DremioStress implements Callable<Integer> {
             new ConnectDremioApi(),
             jsonConfig,
             protocol,
-            dremioHost,
-            dremioUser,
-            dremioPassword,
+            dremioUrl,
+            dremioHttpUser,
+            dremioHttpPassword,
             maxQueriesInFlight,
-            timeoutSeconds,
+            httpTimeoutSeconds,
             durationSeconds,
-            skipSSLVerification);
+            skipHttpSSLVerification);
     return r.run();
   }
 
-    @CommandLine.Option( // W: Use explicit scoping instead of the default package private level
-          names = {"-v", "--verbose"},
-          description = "-v for info, -vv for debug, -vvv for trace")
-    boolean[] verbose; // W: Fields should be declared at the top of the class, before any method declarations, constructors, initializers or inner classes.
+  @CommandLine.Option( // W: Use explicit scoping instead of the default package private level
+      names = {"-v", "--verbose"},
+      description = "-v for info, -vv for debug, -vvv for trace")
+  boolean[] verbose; // W: Fields should be declared at the top of the class, before any method
 
-    void setLogging(final Logger root) { // W: To avoid mistakes add a comment at the beginning of the setLogging method if you want a default access modifier
+  // declarations, constructors, initializers or inner classes.
+
+  void setLogging(
+      final Logger
+          root) { // W: To avoid mistakes add a comment at the beginning of the setLogging method if
+    // you want a default access modifier
     final Level targetLevel = getTargetLevel();
     root.setLevel(targetLevel);
     for (final Handler handler : root.getHandlers()) {
       root.removeHandler(handler);
     }
     final CustomLogFormatter logFormatter = new CustomLogFormatter();
-    final StreamHandler sh = new StreamHandler(System.out, logFormatter); // W: Avoid variables with short names like sh
+    final StreamHandler sh =
+        new StreamHandler(System.out, logFormatter); // W: Avoid variables with short names like sh
     sh.setLevel(targetLevel);
     root.addHandler(sh);
     if (FINEST.equals(targetLevel)) {
@@ -218,5 +223,4 @@ public class DremioStress implements Callable<Integer> {
     }
     return INFO;
   }
-
 }

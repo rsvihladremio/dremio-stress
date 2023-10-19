@@ -136,9 +136,10 @@ public class HttpApiCall implements ApiCall {
           content.append(strCurrentLine);
         }
       }
-      ObjectMapper mapper = new ObjectMapper();
-      Map<String, Object> value = mapper.readValue(content.toString(), new TypeReference<>() {});
-      HttpApiResponse response = new HttpApiResponse();
+      final ObjectMapper mapper = new ObjectMapper();
+      final Map<String, Object> value =
+          mapper.readValue(content.toString(), new TypeReference<Map<String, Object>>() {});
+      final HttpApiResponse response = new HttpApiResponse();
       response.setResponseCode(connection.getResponseCode());
       response.setMessage(connection.getResponseMessage());
       response.setResponse(value);

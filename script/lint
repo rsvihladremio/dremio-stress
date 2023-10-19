@@ -9,4 +9,4 @@ cd "$(dirname "$0")/.."
 [ -z "$DEBUG" ] || set -x
 
 echo "==> Running check"
-./mvnw spotless:check
+./mvnw validate

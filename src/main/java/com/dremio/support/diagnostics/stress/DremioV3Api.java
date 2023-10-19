@@ -51,7 +51,11 @@ public class DremioV3Api implements DremioApi {
    *     body
    */
   public DremioV3Api(
-          ApiCall apiCall, UsernamePasswordAuth auth, String baseUrl, FileMaker fileMaker, int timeoutSeconds)
+      ApiCall apiCall,
+      UsernamePasswordAuth auth,
+      String baseUrl,
+      FileMaker fileMaker,
+      int timeoutSeconds)
       throws IOException {
     this.apiCall = apiCall;
     this.fileMaker = fileMaker;
@@ -153,8 +157,8 @@ public class DremioV3Api implements DremioApi {
       String json = new ObjectMapper().writeValueAsString(params);
       HttpApiResponse response = apiCall.submitPost(url, this.baseHeaders, json);
       if (response == null
-              || response.getResponse() == null
-              || !response.getResponse().containsKey("id")) {
+          || response.getResponse() == null
+          || !response.getResponse().containsKey("id")) {
         String errorMessage = tryParseError(response);
         if (errorMessage == null) {
           errorMessage = String.format("id was not contained in the response '%s'", response);
@@ -180,7 +184,9 @@ public class DremioV3Api implements DremioApi {
           success.setSuccessful(true);
           return success;
         }
-        if ("FAILED".equals(statusString) || "INVALID_STATE".equals(statusString) || "CANCELLED".equals(statusString)) {
+        if ("FAILED".equals(statusString)
+            || "INVALID_STATE".equals(statusString)
+            || "CANCELLED".equals(statusString)) {
           DremioApiResponse failure = new DremioApiResponse();
           failure.setErrorMessage(String.format("Response status is '%s'", status.getMessage()));
           return failure;
@@ -199,17 +205,15 @@ public class DremioV3Api implements DremioApi {
         failed.setErrorMessage("unknown error");
       }
       return failed;
-    }catch(Exception ex){
+    } catch (Exception ex) {
       DremioApiResponse failed = new DremioApiResponse();
       failed.setSuccessful(false);
-      failed.setErrorMessage("unhandled exception: " +ex.getMessage());
+      failed.setErrorMessage("unhandled exception: " + ex.getMessage());
       return failed;
     }
   }
 
-  /**
-   * @return return the url used to access Dremio
-   */
+  /** @return return the url used to access Dremio */
   @Override
   public String getUrl() {
     return this.baseUrl;

@@ -68,7 +68,7 @@ public class CustomLogFormatter extends Formatter {
       loggerName = "root";
     }
     final Throwable thrown = record.getThrown();
-    final long threadId = record.getLongThreadID();
+    final int threadId = record.getThreadID();
     if (thrown == null) {
       return String.format(
           "%s [%s-%d] %s %s:%s - %s%n",

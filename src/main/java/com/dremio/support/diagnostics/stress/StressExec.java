@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -50,7 +51,6 @@ public class StressExec {
   private final ConnectApi connectApi;
   private final boolean skipSSLVerification;
 
-
   public StressExec(
       final ConnectApi connectApi,
       final File jsonConfig,
@@ -65,7 +65,7 @@ public class StressExec {
     this(
         new SecureRandom(),
         connectApi,
-            jsonConfig,
+        jsonConfig,
         protocol,
         dremioHost,
         dremioUser,
@@ -130,16 +130,17 @@ public class StressExec {
             durationLastRun = msElapsed;
             final int failuresThisRun = failures - failuresLastRun;
             failuresLastRun = failures;
-            final int submittedThisRun = submitted- submittedLastRun;
+            final int submittedThisRun = submitted - submittedLastRun;
             submittedLastRun = submitted;
             System.out.printf(
-                "%s - queries submitted (total): %d; queries successful (total): %d; queries successful per second (current phase): %.2f;"
-                    + " failure rate: %.2f %% (current phase) - time elapsed: %s/%s%n",
+                "%s - queries submitted (total): %d; queries successful (total): %d; queries"
+                    + " successful per second (current phase): %.2f; failure rate: %.2f %% (current"
+                    + " phase) - time elapsed: %s/%s%n",
                 Instant.now(),
                 submitted,
                 successful,
                 (float) successfulThisRun / secondsElapsed,
-                    ((float) failuresThisRun / submittedThisRun) * 100.0,
+                ((float) failuresThisRun / submittedThisRun) * 100.0,
                 Human.getHumanDurationFromMillis(msElapsed),
                 Human.getHumanDurationFromMillis(durationTargetMS));
           }
@@ -175,7 +176,7 @@ public class StressExec {
               protocol,
               skipSSLVerification);
 
-      var config = getConfig();
+      final StressConfig config = getConfig();
       final BlockingQueue<Runnable> queue =
           new LinkedBlockingQueue<>(this.maxQueriesInFlight * 1000);
       final List<QueryConfig> queryPool = getQueryConfigs(config);
@@ -198,7 +199,7 @@ public class StressExec {
                   DremioApiResponse response = null;
                   try {
                     submittedCounter.incrementAndGet();
-                    response = dremioApi.runSQL(mappedSql.queryText(), query.sqlContext());
+                    response = dremioApi.runSQL(mappedSql.getQueryText(), query.getSqlContext());
                   } catch (final Exception e) {
                     failureCounter.incrementAndGet();
                     logger.info(
@@ -269,14 +270,15 @@ public class StressExec {
                   } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                   }
-                  System.out.printf("%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
+                  System.out.printf(
+                      "%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
                           + " successful per second: %.2f; failure rate: %.2f %% - time elapsed:"
                           + " %s/%s%n",
-                              Instant.now(),
-                              submitted,
+                      Instant.now(),
+                      submitted,
                       successful,
                       (float) submitted / secondsElapsed,
-                          ((float) failures / submitted) * 100.0,
+                      ((float) failures / submitted) * 100.0,
                       Human.getHumanDurationFromMillis(msElapsed),
                       Human.getHumanDurationFromMillis(durationTargetMS));
                   executorService.shutdownNow();
@@ -289,14 +291,14 @@ public class StressExec {
 
   private static Map<String, QueryGroup> getStringQueryGroupMap(StressConfig config) {
     final Map<String, QueryGroup> queryGroups = new HashMap<>();
-    if (config.queryGroups() != null) {
-      for (final QueryGroup g : config.queryGroups()) {
-        if (queryGroups.containsKey(g.name())) {
+    if (config.getQueryGroups() != null) {
+      for (final QueryGroup g : config.getQueryGroups()) {
+        if (queryGroups.containsKey(g.getName())) {
           throw new InvalidParameterException(
               "unable to read stress yaml because there are least two query groups named "
-                  + g.name());
+                  + g.getName());
         }
-        queryGroups.put(g.name(), g);
+        queryGroups.put(g.getName(), g);
       }
     }
     return queryGroups;
@@ -304,9 +306,9 @@ public class StressExec {
 
   private static List<QueryConfig> getQueryConfigs(StressConfig config) {
     final List<QueryConfig> queryPool = new ArrayList<>();
-    for (final QueryConfig q : config.queries()) {
+    for (final QueryConfig q : config.getQueries()) {
       int i = 0;
-      final int frequency = Math.max(q.frequency(), 1);
+      final int frequency = Math.max(q.getFrequency(), 1);
       while (i < frequency) {
         i++;
         queryPool.add(q);
@@ -317,19 +319,19 @@ public class StressExec {
 
   public List<Query> mapSql(final QueryConfig q, final Map<String, QueryGroup> queryGroupsMap) {
     final List<String> rawQueries = new ArrayList<>();
-    if (q.queryGroup() != null && !q.queryGroup().isEmpty()) {
-      final List<String> queries = queryGroupsMap.get(q.queryGroup()).queries();
+    if (q.getQueryGroup() != null && !q.getQueryGroup().isEmpty()) {
+      final List<String> queries = queryGroupsMap.get(q.getQueryGroup()).getQueries();
       rawQueries.addAll(queries);
-    } else if (q.query() != null && !q.query().isEmpty()) {
-      rawQueries.add(q.query());
+    } else if (q.getQuery() != null && !q.getQuery().isEmpty()) {
+      rawQueries.add(q.getQuery());
     }
     final List<Query> mappedQueries = new ArrayList<>();
     for (final String sql : rawQueries) {
-      final var tokens = sql.split(" ");
+      final String[] tokens = sql.split(" ");
       final int words = tokens.length;
       for (int i = 0; i < words; i++) {
         final String word = tokens[i];
-        for (final var x : q.parameters().entrySet()) {
+        for (final Entry<String, Object[]> x : q.getParameters().entrySet()) {
           if (word.equals(":" + x.getKey())) {
             final int valueCount = x.getValue().length;
             if (valueCount > 0) {
@@ -340,7 +342,10 @@ public class StressExec {
           }
         }
       }
-      mappedQueries.add(new Query(String.join(" ", tokens), q.sqlContext()));
+      final Query query = new Query();
+      query.setQueryText(String.join(" ", tokens));
+      query.setContext(q.getSqlContext());
+      mappedQueries.add(query);
     }
     return mappedQueries;
   }

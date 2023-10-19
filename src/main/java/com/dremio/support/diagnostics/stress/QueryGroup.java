@@ -15,4 +15,23 @@ package com.dremio.support.diagnostics.stress;
 
 import java.util.List;
 
-public record QueryGroup(String name, List<String> queries) {}
+public class QueryGroup {
+  private String name;
+  private List<String> queries;
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public List<String> getQueries() {
+    return queries;
+  }
+
+  public void setQueries(List<String> queries) {
+    this.queries = queries;
+  }
+}

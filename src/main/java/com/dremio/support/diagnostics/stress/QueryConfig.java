@@ -16,9 +16,51 @@ package com.dremio.support.diagnostics.stress;
 import java.util.List;
 import java.util.Map;
 
-public record QueryConfig(
-    String query,
-    String queryGroup,
-    int frequency,
-    Map<String, Object[]> parameters,
-    List<String> sqlContext) {}
+public class QueryConfig {
+
+  private String query;
+  private String queryGroup;
+  private int frequency;
+  private Map<String, Object[]> parameters;
+  private List<String> sqlContext;
+
+  public String getQuery() {
+    return query;
+  }
+
+  public void setQuery(String query) {
+    this.query = query;
+  }
+
+  public String getQueryGroup() {
+    return queryGroup;
+  }
+
+  public void setQueryGroup(String queryGroup) {
+    this.queryGroup = queryGroup;
+  }
+
+  public int getFrequency() {
+    return frequency;
+  }
+
+  public void setFrequency(int frequency) {
+    this.frequency = frequency;
+  }
+
+  public Map<String, Object[]> getParameters() {
+    return parameters;
+  }
+
+  public void setParameters(Map<String, Object[]> parameters) {
+    this.parameters = parameters;
+  }
+
+  public List<String> getSqlContext() {
+    return sqlContext;
+  }
+
+  public void setSqlContext(List<String> sqlContext) {
+    this.sqlContext = sqlContext;
+  }
+}

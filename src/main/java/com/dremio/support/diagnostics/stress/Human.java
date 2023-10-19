@@ -115,7 +115,7 @@ public class Human {
   }
 
   public static String getHumanNumber(final double number) {
-    var format = NumberFormat.getInstance();
+    final NumberFormat format = NumberFormat.getInstance();
     format.setMaximumFractionDigits(2);
     return format.format(number);
   }
