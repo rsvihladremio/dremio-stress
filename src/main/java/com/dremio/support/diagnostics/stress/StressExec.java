@@ -215,6 +215,7 @@ public class StressExec {
             final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
             final QueryConfig query = new QueryConfig();
             query.setFrequency(1);
+            query.setParameters(new HashMap<>());
             query.setQuery(row.getQueryText());
             // TODO this is wrong of course, need to handle splitting on . but not on . that are
             // quoted..should be fun
