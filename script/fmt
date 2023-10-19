@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# scripts/fmt: formats files
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+echo "==> Formatting files"
+./mvnw com.coveo:fmt-maven-plugin:format

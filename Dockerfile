@@ -1,32 +1,9 @@
-FROM --platform=linux/amd64 debian:stable-slim
-ARG VERSION=unknown
-ARG GIT_SHA=unknown
+FROM eclipse-temurin:11
+
+RUN mkdir -p /app
 WORKDIR /app
+COPY . /app
 
-COPY . .
+RUN ./mvnw validate && ./mvnw package -Pnative -DskipTests=true && echo "#!/usr/bin/env bash\n_JAVA_OPTIONS='--add-opens=java.base/java.nio=ALL-UNNAMED' java -jar $(ls ./target/dremio-stress-*-jar-with-dependencies.jar) \"\$@\"" >> /usr/bin/dremio-stress && chmod +x /usr/bin/dremio-stress
 
-RUN mkdir build &&  \
-    cd build && \
-    apt update -y && \
-    apt upgrade -y && \ 
-    apt install -y wget odbcinst unixodbc unixodbc-dev alien && \
-    wget https://go.dev/dl/go1.21.3.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz && \
-    ln -s /usr/local/go/bin/go /usr/local/bin/go && \
-    wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm && \
-    alien --scripts $(ls ./arrow-flight-sql-odbc-driver-*) && \
-    apt install -y $(ls ./arrow-flight-sql-odbc-driver*.deb) && \
-    rm $(ls ./arrow-flight-sql-odbc-driver-*) && \
-    cd /usr/lib/x86_64-linux-gnu/ && \
-    ln -s libodbcinst.so.2.0.0 libodbcinst.so.1 && \
-    ln -s libodbc.so.2.0.0 libodbc.so.1 && \
-    ldconfig && \
-    cd /app && \
-    apt remove -y wget && \
-    rm -fr build && \
-    go build -tags odbc -ldflags "-X github.com/rsvihladremio/dremio-stress/cmd.GitSha=${GIT_SHA} -X github.com/rsvihladremio/dremio-stress/cmd.Version=${VERSION}" -o /usr/bin/dremio-stress . && \
-    apt clean all && \
-    rm -rf /var/cache/yum && \
-    rm -fr /app
-
-ENTRYPOINT ["/usr/bin/dremio-stress"]
+CMD ["bash", "/usr/bin/dremio-stress"]

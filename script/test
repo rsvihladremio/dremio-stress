@@ -1,5 +1,16 @@
 #!/bin/sh
 
-export GOARCH=amd64
-go test -race -cover -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out
+# scripts/test: Run test suite for application. Optionally pass in a path to an
+#              individual test file to run a single test.
+
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+
+echo "==> Running tests…"
+./mvnw -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG test
+
