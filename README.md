@@ -1,11 +1,11 @@
 # dremio-stress
 
-Simple tool to stress Dremio via JDBC and REST interfaces written for Java 8 (but works with 17)
+Simple tool to stress Dremio via JDBC and REST interfaces written for Java 8 (but works with 17) against a queries.json or using a custom workload file (stress.json).
 
 ## Run via the REST interface
 
 ```bash
-java -jar dremio-stress.jar --file-type STRESS_JSON -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
+java -jar dremio-stress.jar -g STRESS_JSON -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
 ```
 
 ## Run via JDBC
@@ -14,46 +14,32 @@ java -jar dremio-stress.jar --file-type STRESS_JSON -u dremio  -p dremio123 -l h
 ### Run via Docker
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress --file-type STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/stress.json
+docker run -it --pull=always -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/queries.json
 ```
 
-### Run JDBC Directly With a Binary
+### JDBC Directly With a Binary
 
 ```bash
-java -jar dremio-stress.jar --file-type STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
+java -jar dremio-stress.jar -g QUERIES_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./queries.json
+```
+
+### Using custom stress.json format with specified workloads
+
+```bash
+java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
 ```
 
 ## Example stress.json files
 
-### Two queries will end up at more or less at 50% usage each
+### Using queryGroups to preform several ops in order
 
-```json
-{
-"queries": [
-	{
-	"query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv LIMIT 50\"",
-	"frequency": 5
-	},
-	{
-	"query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
-	"frequency": 5,
-	"parameters": {
-		"start": ["2018-02-04","2018-02-05"],
-		"end": ["2018-02-14","2018-02-15"]
-	}
-	}
-]
-}
-```
-
-
-### Using queryGroups to preform several ops in order, the "schemaops" group  will be called roughly 10% of the time
+NOTE: the "schema-ops" group  will be called roughly 10% of the time
 
 ```json
 {
 "queryGroups": [
 	{
-	"name": "schemaops",
+	"name": "schema-ops",
 	"queries": [
 		"drop table if exists samples.\"samples.dremio.com\".\"A\"",
 		"create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
@@ -63,7 +49,7 @@ java -jar dremio-stress.jar --file-type STRESS_JSON --protocol JDBC "jdbc:arrow-
 ],
 "queries": [
 	{
-	"queryGroup": "schemaops",
+	"queryGroup": "schema-ops",
 	"frequency": 1
 	},
 	{
