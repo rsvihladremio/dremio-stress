@@ -118,14 +118,27 @@ NOTE works on Linux, Mac, or WSL2 (Windows without WSL is not currently supporte
 
 * Install JDK 8-17
 * run `./script/build`
+* run `java -jar ./target/dremio-stress.jar` you should see the help output
 
 ### How to build a Docker image
 
 * Install docker desktop or colima or whatever you desire that runs works with a Dockerfile
 * run `docker build -t ghcr.io/rsvihladremio/dremio-stress .`
+* run `docker run -it ghcr.io/rsvihladremio/dremio-stress dremio-stress` and you should see the help output
 
 ### Running Tests
 
 * Install docker or have it running
 * JDK 8+
 * run `./script/test`
+
+### Cutting a new release
+
+This assumes the [github client is installed and configured](https://cli.github.com) and assuming release
+* run in a terminal `export VERSION=0.4.0-beta2`
+* run `./mvnw versions:set versions:commit -DnewVersion="$VERSION"`
+* run `git tag v$VERSION`
+* run `git push origin v$VERSION`
+* run `./script/build`
+* run `gh release create v$VERSION --generate-notes ./target/dremio-stress.jar`
+
