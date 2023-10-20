@@ -108,7 +108,23 @@ using a defined JSON run a series of queries against dremio using various approa
   -v, --verbose           -v for info, -vv for debug, -vvv for trace
 ```
 
-## Running Tests
+## Contributing 
+
+* `git clone git@github.com:rsvihladremio/dremio-stress`
+* cd dremio-stress
+
+### How to build a Jar
+NOTE works on Linux, Mac, or WSL2 (Windows without WSL is not currently supported, but it will work in any case just have to run the commands that are run in ./script/build manually)
+
+* Install JDK 8-17
+* run `/script/build`
+
+### How to build a Docker image
+
+* Install docker desktop or colima or whatever you desire that runs works with a Dockerfile
+* docker build -t ghcr.io/rsvihladremio/dremio-stress .
+
+### Running Tests
 
 * Install docker or have it running
 * JDK 8+
