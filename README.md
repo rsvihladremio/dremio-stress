@@ -134,7 +134,9 @@ NOTE works on Linux, Mac, or WSL2 (Windows without WSL is not currently supporte
 
 ### Cutting a new release
 
-This assumes the [github client is installed and configured](https://cli.github.com) and assuming release
+This assumes the [github client is installed and configured](https://cli.github.com) and assuming release version 0.4.0-beta2. Update the version to your desired version.
+
+
 * run in a terminal `export VERSION=0.4.0-beta2`
 * run `./mvnw versions:set versions:commit -DnewVersion="$VERSION"`
 * run `git tag v$VERSION`
