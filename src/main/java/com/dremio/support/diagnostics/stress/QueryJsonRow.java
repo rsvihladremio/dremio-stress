@@ -22,6 +22,8 @@ public class QueryJsonRow {
   private String queryText;
   private String outcome;
   private String context;
+  private String username;
+  private String queryId;
 
   public String getQueryText() {
     return queryText;
@@ -45,5 +47,21 @@ public class QueryJsonRow {
 
   public void setContext(String context) {
     this.context = context;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String userName) {
+    this.username = userName;
+  }
+
+  public String getQueryId() {
+    return queryId;
+  }
+
+  public void setQueryId(String queryId) {
+    this.queryId = queryId;
   }
 }

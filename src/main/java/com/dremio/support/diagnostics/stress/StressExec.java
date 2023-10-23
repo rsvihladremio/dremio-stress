@@ -13,6 +13,7 @@
  */
 package com.dremio.support.diagnostics.stress;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class StressExec {
@@ -201,33 +203,134 @@ public class StressExec {
     }
   }
 
-  private List<QueryConfig> getQueries() {
+  public List<QueryConfig> getQueries() {
     if (this.fileType == QueriesGeneratorFileType.STRESS_JSON) {
       final StressConfig config = getConfig();
       return getQueryConfigs(config);
     } else {
-      final ObjectMapper objectMapper = new ObjectMapper();
-      try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
-        try (Scanner scanner = new Scanner(st)) {
-          List<QueryConfig> configs = new ArrayList<>();
-          while (scanner.hasNextLine()) {
-            final String line = scanner.nextLine();
-            final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
-            final QueryConfig query = new QueryConfig();
-            query.setFrequency(1);
-            query.setParameters(new HashMap<>());
-            query.setQuery(row.getQueryText());
-            // TODO this is wrong of course, need to handle splitting on . but not on . that are
-            // quoted..should be fun
-            query.setSqlContext(Arrays.asList(row.getContext()));
-            configs.add(query);
-          }
-          return configs;
+      List<QueryConfig> queriesConfig = new ArrayList<>();
+      if (jsonConfig.isDirectory()) {
+        logger.info("provided path " + jsonConfig + " is dir. checking for queries.json.");
+        File[] queriesDir = jsonConfig.listFiles();
+        for (File queriesFile : queriesDir) {
+          queriesConfig.addAll(openQueryJson(queriesFile));
+        }
+      } else if (jsonConfig.exists()) {
+        logger.info("provided path is a single queries.json file");
+        queriesConfig = openQueryJson(jsonConfig);
+      } else {
+        throw new RuntimeException("file or folder " + jsonConfig + " not found");
+      }
+      if (queriesConfig.isEmpty()) {
+        throw new RuntimeException("no valid queries were found");
+      } else {
+        logger.info("found a total of " + queriesConfig.size() + " queries");
+      }
+      return queriesConfig;
+    }
+  }
+
+  public List<QueryConfig> openQueryJson(File jsonConfig) {
+    logger.info("opening " + jsonConfig);
+    List<QueryConfig> parsedQueryConfigs = new ArrayList<>();
+
+    if (jsonConfig.toString().endsWith(".json.gz")) {
+      try (GZIPInputStream gzst = new GZIPInputStream(Files.newInputStream(jsonConfig.toPath()))) {
+        try (Scanner scanner = new Scanner(gzst)) {
+          parsedQueryConfigs = parseQueryConfigs(scanner);
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    } else if (jsonConfig.toString().endsWith(".json")) {
+      try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
+        try (Scanner scanner = new Scanner(st)) {
+          parsedQueryConfigs = parseQueryConfigs(scanner);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      logger.warning("file type not supported - skipping " + jsonConfig);
     }
+    return parsedQueryConfigs;
+  }
+
+  public List<QueryConfig> parseQueryConfigs(Scanner scanner) throws JsonProcessingException {
+    final ObjectMapper objectMapper = new ObjectMapper();
+    List<QueryConfig> configs = new ArrayList<>();
+    int skipCount = 0;
+    int includeCount = 0;
+    while (scanner.hasNextLine()) {
+      final String line = scanner.nextLine();
+      final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
+      final QueryConfig query = new QueryConfig();
+      if (skipQuery(row)) {
+        skipCount += 1;
+        continue;
+      } else {
+        includeCount += 1;
+      }
+      String context = row.getContext();
+      List<String> sqlContext = new ArrayList<>();
+      if (!context.equals("") && !context.equals("[]")) {
+        // TODO: May need additional handling of escaped chars, like \"
+        context = context.substring(1, context.length() - 1); // Remove square brackets
+        sqlContext = Arrays.asList(context.split(",\\s*"));
+      }
+      String queryText = row.getQueryText();
+      boolean addLimit = false; // TODO: Pass in as config or CLI argument
+      if (addLimit) {
+        if (queryText.toLowerCase().contains("limit")) {
+          queryText = queryText.replaceAll("limit \\d+", "limit 1");
+          queryText = queryText.replaceAll("LIMIT \\d+", "LIMIT 1");
+        } else {
+          queryText += " LIMIT 1";
+        }
+      }
+
+      query.setFrequency(1);
+      query.setParameters(new HashMap<>());
+      query.setQuery(queryText);
+      query.setSqlContext(sqlContext);
+      configs.add(query);
+    }
+    System.out.println("Total number of queries included: " + includeCount);
+    System.out.println("Total number of queries excluded: " + skipCount);
+    return configs;
+  }
+
+  private boolean skipQuery(QueryJsonRow row) {
+    if (row.getUsername().equals("$dremio$")) {
+      // Internal queries are context dependent (e.g. on reflection IDs) and usually cannot be
+      // re-run
+      return true;
+    } else if (!row.getOutcome().equals("COMPLETED")) {
+      // Queries that did not finish successfully, are not expected to work
+      return true;
+    } else if (row.getQueryText().equals("NA")) {
+      // Ignore non-SQL queries from ODBC/JDBC connections
+      return true;
+    }
+    // Ignore DDL/DML queries
+    String queryText = row.getQueryText().toLowerCase();
+    String[] ddlKeywords = {
+      "create ",
+      "alter ",
+      "drop ",
+      "insert ",
+      "update ",
+      "delete ",
+      "grant ",
+      "revoke ",
+      "password "
+    };
+    for (String kw : ddlKeywords) {
+      if (queryText.contains(kw)) {
+        return true;
+      }
+    }
+    return false;
   }
   /**
    * The stress job
