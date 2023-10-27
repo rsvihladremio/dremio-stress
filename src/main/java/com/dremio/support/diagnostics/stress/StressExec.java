@@ -22,16 +22,8 @@ import java.nio.file.Files;
 import java.security.InvalidParameterException;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -50,6 +42,9 @@ public class StressExec {
   private final Random random;
   private final File jsonConfig;
   private final QueriesGeneratorFileType fileType;
+  private final QueriesSequence queriesSequence;
+  private final Integer queryIndexForRestart;
+  private final Integer limitResults;
   private final Protocol protocol;
   private final String dremioHost;
   private final String dremioUser;
@@ -64,6 +59,9 @@ public class StressExec {
       final ConnectApi connectApi,
       final File jsonConfig,
       final QueriesGeneratorFileType fileType,
+      final QueriesSequence queriesSequence,
+      final Integer queryIndexForRestart,
+      final Integer limitResults,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -77,6 +75,9 @@ public class StressExec {
         connectApi,
         jsonConfig,
         fileType,
+        queriesSequence,
+        queryIndexForRestart,
+        limitResults,
         protocol,
         dremioHost,
         dremioUser,
@@ -92,6 +93,9 @@ public class StressExec {
       final ConnectApi connectApi,
       final File jsonConfig,
       final QueriesGeneratorFileType fileType,
+      final QueriesSequence queriesSequence,
+      final Integer queryIndexForRestart,
+      final Integer limitResults,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -104,6 +108,9 @@ public class StressExec {
     this.connectApi = connectApi;
     this.jsonConfig = jsonConfig;
     this.fileType = fileType;
+    this.queriesSequence = queriesSequence;
+    this.queryIndexForRestart = queryIndexForRestart;
+    this.limitResults = limitResults;
     this.protocol = protocol;
     this.dremioHost = dremioHost;
     this.dremioUser = dremioUser;
@@ -125,6 +132,7 @@ public class StressExec {
   long successfulLastRun = 0;
   int failuresLastRun = 0;
   int submittedLastRun = 0;
+  AtomicInteger queryIndex = new AtomicInteger(-1);
 
   private void startReporting(Instant d) {
 
@@ -136,6 +144,7 @@ public class StressExec {
             final int successful = successfulCounter.get();
             final int failures = failureCounter.get();
             final int submitted = submittedCounter.get();
+            final int index = queryIndex.get();
 
             final long successfulThisRun = successful - successfulLastRun;
             successfulLastRun = successful;
@@ -148,14 +157,15 @@ public class StressExec {
             System.out.printf(
                 "%s - queries submitted (total): %d; queries successful (total): %d; queries"
                     + " successful per second (current phase): %.2f; failure rate: %.2f %% (current"
-                    + " phase) - time elapsed: %s/%s%n",
+                    + " phase) - time elapsed: %s/%s - last query index: %d%n",
                 Instant.now(),
                 submitted,
                 successful,
                 (float) successfulThisRun / secondsElapsed,
                 ((float) failuresThisRun / submittedThisRun) * 100.0,
                 Human.getHumanDurationFromMillis(msElapsed),
-                Human.getHumanDurationFromMillis(durationTargetMS));
+                Human.getHumanDurationFromMillis(durationTargetMS),
+                index);
           }
         },
         5 * 1000,
@@ -279,15 +289,17 @@ public class StressExec {
         sqlContext = Arrays.asList(context.split(",\\s*"));
       }
       String queryText = row.getQueryText();
-      boolean addLimit = false; // TODO: Pass in as config or CLI argument
-      if (addLimit) {
+      if (!Objects.isNull(limitResults) && limitResults > 0) {
         if (queryText.toLowerCase().contains("limit")) {
-          queryText = queryText.replaceAll("limit \\d+", "limit 1");
-          queryText = queryText.replaceAll("LIMIT \\d+", "LIMIT 1");
+          queryText = queryText.replaceAll("limit \\d+", "limit " + limitResults);
+          queryText = queryText.replaceAll("LIMIT \\d+", "LIMIT " + limitResults);
         } else {
-          queryText += " LIMIT 1";
+          queryText += " LIMIT " + limitResults;
         }
       }
+      // Add metadata of original query
+      String queryId = row.getQueryId();
+      queryText = "--Replay of " + queryId + "\n" + queryText;
 
       query.setFrequency(1);
       query.setParameters(new HashMap<>());
@@ -352,15 +364,37 @@ public class StressExec {
           new LinkedBlockingQueue<>(this.maxQueriesInFlight * 1000);
       final List<QueryConfig> queryPool = getQueries();
       final Map<String, QueryGroup> queryGroups = getStringQueryGroupMap();
+      if (queriesSequence == QueriesSequence.SEQUENTIAL) {
+        queryIndex = new AtomicInteger(this.queryIndexForRestart);
+      }
       final ExecutorService executorService =
           new ThreadPoolExecutor(
               this.maxQueriesInFlight, this.maxQueriesInFlight, 0L, TimeUnit.MILLISECONDS, queue);
       final Instant d = Instant.now();
       startReporting(d);
       try {
-        monitorForEnd(d, executorService);
+        monitorForEnd(d, executorService, queryPool.size());
         while (!executorService.isShutdown()) {
-          final int nextQuery = random.nextInt(queryPool.size());
+          final int nextQuery;
+          if (queriesSequence == QueriesSequence.SEQUENTIAL) {
+            if (queryIndex.get() + 1 < queryPool.size()) {
+              nextQuery = queryIndex.incrementAndGet();
+            } else {
+              final int waitTime = 10;
+              System.out.println(
+                  "finished submitting queries, waiting "
+                      + waitTime
+                      + "s for latest queries to finish...");
+              Thread.sleep(
+                  waitTime
+                      * 1000); // this should be enough time to trigger executorService shutdown
+              continue;
+            }
+          } else if (queriesSequence == QueriesSequence.RANDOM) {
+            nextQuery = random.nextInt(queryPool.size());
+          } else {
+            throw new RuntimeException("unexpected queriesSequence: " + queriesSequence);
+          }
           final QueryConfig query = queryPool.get(nextQuery);
           final List<Query> mappedSqls = mapSql(query, queryGroups);
           for (final Query mappedSql : mappedSqls) {
@@ -389,7 +423,7 @@ public class StressExec {
     return 0;
   }
 
-  private void monitorForEnd(Instant d, ExecutorService executorService) {
+  private void monitorForEnd(Instant d, ExecutorService executorService, Integer numQueries) {
     new Thread(
             () -> {
               while (true) {
@@ -400,10 +434,11 @@ public class StressExec {
                 }
                 final Instant now = Instant.now();
                 long msElapsed = now.toEpochMilli() - d.toEpochMilli();
-                if (msElapsed > durationTargetMS) {
+                if (msElapsed > durationTargetMS || queryIndex.get() + 1 >= numQueries) {
                   final int submitted = submittedCounter.get();
                   final int successful = successfulCounter.get();
                   final int failures = failureCounter.get();
+                  final int index = queryIndex.get();
                   final long secondsElapsed = msElapsed / 1000;
                   try {
                     Thread.sleep(5 * 1000);
@@ -413,14 +448,15 @@ public class StressExec {
                   System.out.printf(
                       "%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
                           + " successful per second: %.2f; failure rate: %.2f %% - time elapsed:"
-                          + " %s/%s%n",
+                          + " %s/%s - last query index: %d%n",
                       Instant.now(),
                       submitted,
                       successful,
                       (float) submitted / secondsElapsed,
                       ((float) failures / submitted) * 100.0,
                       Human.getHumanDurationFromMillis(msElapsed),
-                      Human.getHumanDurationFromMillis(durationTargetMS));
+                      Human.getHumanDurationFromMillis(durationTargetMS),
+                      index);
                   executorService.shutdownNow();
                 }
               }

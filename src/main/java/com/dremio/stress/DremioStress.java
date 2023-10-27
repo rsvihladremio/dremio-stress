@@ -19,6 +19,7 @@ import com.dremio.support.diagnostics.stress.ConnectDremioApi;
 import com.dremio.support.diagnostics.stress.CustomLogFormatter;
 import com.dremio.support.diagnostics.stress.Protocol;
 import com.dremio.support.diagnostics.stress.QueriesGeneratorFileType;
+import com.dremio.support.diagnostics.stress.QueriesSequence;
 import com.dremio.support.diagnostics.stress.StressExec;
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -154,6 +155,20 @@ public class DremioStress implements Callable<Integer> {
       description = "specify QUERIES_JSON or STRESS_JSON to specify the engine type")
   private QueriesGeneratorFileType queriesGeneratorFileType;
 
+  /** query execution sequence */
+  @CommandLine.Option(
+      names = {"--execution-sequence", "-x"},
+      description = "specify RANDOM or SEQUENTIAL to specify the execution sequence",
+      defaultValue = "RANDOM")
+  private QueriesSequence queriesSequence;
+
+  /** query index to restart from */
+  @CommandLine.Option(
+      names = {"--restart-index", "-i"},
+      description = "specify query index to restart from (for SEQUENTIAL execution-sequence only)",
+      defaultValue = "-1")
+  private Integer queryIndexForRestart;
+
   private Package getPackage() {
     return this.getClass().getPackage();
   }
@@ -175,6 +190,9 @@ public class DremioStress implements Callable<Integer> {
             new ConnectDremioApi(),
             jsonConfig,
             queriesGeneratorFileType,
+            queriesSequence,
+            queryIndexForRestart,
+            limitResults,
             protocol,
             dremioUrl,
             dremioHttpUser,
