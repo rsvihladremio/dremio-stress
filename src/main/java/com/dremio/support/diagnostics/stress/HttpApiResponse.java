@@ -20,16 +20,8 @@ public class HttpApiResponse {
   private String message;
   private Map<String, Object> response;
 
-  public int getResponseCode() {
-    return responseCode;
-  }
-
   public void setResponseCode(int responseCode) {
     this.responseCode = responseCode;
-  }
-
-  public String getMessage() {
-    return message;
   }
 
   public void setMessage(String message) {

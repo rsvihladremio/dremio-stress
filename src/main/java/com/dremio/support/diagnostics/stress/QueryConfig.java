@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 public class QueryConfig {
-
   private String query;
   private String queryGroup;
   private int frequency;

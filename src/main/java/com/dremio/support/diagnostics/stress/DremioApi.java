@@ -22,17 +22,10 @@ public interface DremioApi {
    * runs a sql statement against the rest API
    *
    * @param sql sql string to submit to dremio
-   * @param context conext list to use with the query
+   * @param contexts sql context to use with the query
    * @return the result of the job
    * @throws IOException occurs when the underlying apiCall does, typically a problem with handling
    *     of the body
    */
-  DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException;
-
-  /**
-   * The http URL for the dremio server
-   *
-   * @return return the url used to access Dremio
-   */
-  String getUrl();
+  DremioApiResponse runSQL(String sql, Collection<String> contexts) throws IOException;
 }

@@ -16,7 +16,6 @@ package com.dremio.support.diagnostics.stress;
 import java.util.List;
 
 public class StressConfig {
-
   private List<QueryConfig> queries;
   private List<QueryGroup> queryGroups;
 

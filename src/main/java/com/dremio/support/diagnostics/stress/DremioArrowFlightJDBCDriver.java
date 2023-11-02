@@ -90,14 +90,4 @@ public class DremioArrowFlightJDBCDriver implements DremioApi {
       throw new RuntimeException(e);
     }
   }
-
-  /**
-   * The http URL for the dremio server
-   *
-   * @return return the url used to access Dremio
-   */
-  @Override
-  public String getUrl() {
-    return "";
-  }
 }

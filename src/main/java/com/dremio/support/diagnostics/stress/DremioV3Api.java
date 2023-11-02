@@ -197,10 +197,4 @@ public class DremioV3Api implements DremioApi {
       return failed;
     }
   }
-
-  /** @return return the url used to access Dremio */
-  @Override
-  public String getUrl() {
-    return this.baseUrl;
-  }
 }
