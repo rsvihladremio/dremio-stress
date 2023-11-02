@@ -13,6 +13,7 @@
  */
 package com.dremio.support.diagnostics.stress;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
@@ -21,16 +22,8 @@ import java.nio.file.Files;
 import java.security.InvalidParameterException;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class StressExec {
@@ -48,6 +42,9 @@ public class StressExec {
   private final Random random;
   private final File jsonConfig;
   private final QueriesGeneratorFileType fileType;
+  private final QueriesSequence queriesSequence;
+  private final Integer queryIndexForRestart;
+  private final Integer limitResults;
   private final Protocol protocol;
   private final String dremioHost;
   private final String dremioUser;
@@ -62,6 +59,9 @@ public class StressExec {
       final ConnectApi connectApi,
       final File jsonConfig,
       final QueriesGeneratorFileType fileType,
+      final QueriesSequence queriesSequence,
+      final Integer queryIndexForRestart,
+      final Integer limitResults,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -75,6 +75,9 @@ public class StressExec {
         connectApi,
         jsonConfig,
         fileType,
+        queriesSequence,
+        queryIndexForRestart,
+        limitResults,
         protocol,
         dremioHost,
         dremioUser,
@@ -90,6 +93,9 @@ public class StressExec {
       final ConnectApi connectApi,
       final File jsonConfig,
       final QueriesGeneratorFileType fileType,
+      final QueriesSequence queriesSequence,
+      final Integer queryIndexForRestart,
+      final Integer limitResults,
       final Protocol protocol,
       final String dremioHost,
       final String dremioUser,
@@ -102,6 +108,9 @@ public class StressExec {
     this.connectApi = connectApi;
     this.jsonConfig = jsonConfig;
     this.fileType = fileType;
+    this.queriesSequence = queriesSequence;
+    this.queryIndexForRestart = queryIndexForRestart;
+    this.limitResults = limitResults;
     this.protocol = protocol;
     this.dremioHost = dremioHost;
     this.dremioUser = dremioUser;
@@ -123,6 +132,7 @@ public class StressExec {
   long successfulLastRun = 0;
   int failuresLastRun = 0;
   int submittedLastRun = 0;
+  AtomicInteger queryIndex = new AtomicInteger(-1);
 
   private void startReporting(Instant d) {
 
@@ -134,6 +144,7 @@ public class StressExec {
             final int successful = successfulCounter.get();
             final int failures = failureCounter.get();
             final int submitted = submittedCounter.get();
+            final int index = queryIndex.get();
 
             final long successfulThisRun = successful - successfulLastRun;
             successfulLastRun = successful;
@@ -146,14 +157,15 @@ public class StressExec {
             System.out.printf(
                 "%s - queries submitted (total): %d; queries successful (total): %d; queries"
                     + " successful per second (current phase): %.2f; failure rate: %.2f %% (current"
-                    + " phase) - time elapsed: %s/%s%n",
+                    + " phase) - time elapsed: %s/%s - last query index: %d%n",
                 Instant.now(),
                 submitted,
                 successful,
                 (float) successfulThisRun / secondsElapsed,
                 ((float) failuresThisRun / submittedThisRun) * 100.0,
                 Human.getHumanDurationFromMillis(msElapsed),
-                Human.getHumanDurationFromMillis(durationTargetMS));
+                Human.getHumanDurationFromMillis(durationTargetMS),
+                index);
           }
         },
         5 * 1000,
@@ -201,33 +213,136 @@ public class StressExec {
     }
   }
 
-  private List<QueryConfig> getQueries() {
+  public List<QueryConfig> getQueries() {
     if (this.fileType == QueriesGeneratorFileType.STRESS_JSON) {
       final StressConfig config = getConfig();
       return getQueryConfigs(config);
     } else {
-      final ObjectMapper objectMapper = new ObjectMapper();
-      try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
-        try (Scanner scanner = new Scanner(st)) {
-          List<QueryConfig> configs = new ArrayList<>();
-          while (scanner.hasNextLine()) {
-            final String line = scanner.nextLine();
-            final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
-            final QueryConfig query = new QueryConfig();
-            query.setFrequency(1);
-            query.setParameters(new HashMap<>());
-            query.setQuery(row.getQueryText());
-            // TODO this is wrong of course, need to handle splitting on . but not on . that are
-            // quoted..should be fun
-            query.setSqlContext(Arrays.asList(row.getContext()));
-            configs.add(query);
-          }
-          return configs;
+      List<QueryConfig> queriesConfig = new ArrayList<>();
+      if (jsonConfig.isDirectory()) {
+        logger.info("provided path " + jsonConfig + " is dir. checking for queries.json.");
+        File[] queriesDir = jsonConfig.listFiles();
+        for (File queriesFile : queriesDir) {
+          queriesConfig.addAll(openQueryJson(queriesFile));
+        }
+      } else if (jsonConfig.exists()) {
+        logger.info("provided path is a single queries.json file");
+        queriesConfig = openQueryJson(jsonConfig);
+      } else {
+        throw new RuntimeException("file or folder " + jsonConfig + " not found");
+      }
+      if (queriesConfig.isEmpty()) {
+        throw new RuntimeException("no valid queries were found");
+      } else {
+        logger.info("found a total of " + queriesConfig.size() + " queries");
+      }
+      return queriesConfig;
+    }
+  }
+
+  public List<QueryConfig> openQueryJson(File jsonConfig) {
+    logger.info("opening " + jsonConfig);
+    List<QueryConfig> parsedQueryConfigs = new ArrayList<>();
+
+    if (jsonConfig.toString().endsWith(".json.gz")) {
+      try (GZIPInputStream gzst = new GZIPInputStream(Files.newInputStream(jsonConfig.toPath()))) {
+        try (Scanner scanner = new Scanner(gzst)) {
+          parsedQueryConfigs = parseQueryConfigs(scanner);
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    } else if (jsonConfig.toString().endsWith(".json")) {
+      try (InputStream st = Files.newInputStream(jsonConfig.toPath())) {
+        try (Scanner scanner = new Scanner(st)) {
+          parsedQueryConfigs = parseQueryConfigs(scanner);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      logger.warning("file type not supported - skipping " + jsonConfig);
     }
+    return parsedQueryConfigs;
+  }
+
+  public List<QueryConfig> parseQueryConfigs(Scanner scanner) throws JsonProcessingException {
+    final ObjectMapper objectMapper = new ObjectMapper();
+    List<QueryConfig> configs = new ArrayList<>();
+    int skipCount = 0;
+    int includeCount = 0;
+    while (scanner.hasNextLine()) {
+      final String line = scanner.nextLine();
+      final QueryJsonRow row = objectMapper.readValue(line, QueryJsonRow.class);
+      final QueryConfig query = new QueryConfig();
+      if (skipQuery(row)) {
+        skipCount += 1;
+        continue;
+      } else {
+        includeCount += 1;
+      }
+      String context = row.getContext();
+      List<String> sqlContext = new ArrayList<>();
+      if (!context.equals("") && !context.equals("[]")) {
+        // TODO: May need additional handling of escaped chars, like \"
+        context = context.substring(1, context.length() - 1); // Remove square brackets
+        sqlContext = Arrays.asList(context.split(",\\s*"));
+      }
+      String queryText = row.getQueryText();
+      if (!Objects.isNull(limitResults) && limitResults > 0) {
+        if (queryText.toLowerCase().contains("limit")) {
+          queryText = queryText.replaceAll("limit \\d+", "limit " + limitResults);
+          queryText = queryText.replaceAll("LIMIT \\d+", "LIMIT " + limitResults);
+        } else {
+          queryText += " LIMIT " + limitResults;
+        }
+      }
+      // Add metadata of original query
+      String queryId = row.getQueryId();
+      queryText = "--Replay of " + queryId + "\n" + queryText;
+
+      query.setFrequency(1);
+      query.setParameters(new HashMap<>());
+      query.setQuery(queryText);
+      query.setSqlContext(sqlContext);
+      configs.add(query);
+    }
+    System.out.println("Total number of queries included: " + includeCount);
+    System.out.println("Total number of queries excluded: " + skipCount);
+    return configs;
+  }
+
+  private boolean skipQuery(QueryJsonRow row) {
+    if (row.getUsername().equals("$dremio$")) {
+      // Internal queries are context dependent (e.g. on reflection IDs) and usually cannot be
+      // re-run
+      return true;
+    } else if (!row.getOutcome().equals("COMPLETED")) {
+      // Queries that did not finish successfully, are not expected to work
+      return true;
+    } else if (row.getQueryText().equals("NA")) {
+      // Ignore non-SQL queries from ODBC/JDBC connections
+      return true;
+    }
+    // Ignore DDL/DML queries
+    String queryText = row.getQueryText().toLowerCase();
+    String[] ddlKeywords = {
+      "create ",
+      "alter ",
+      "drop ",
+      "insert ",
+      "update ",
+      "delete ",
+      "grant ",
+      "revoke ",
+      "password "
+    };
+    for (String kw : ddlKeywords) {
+      if (queryText.contains(kw)) {
+        return true;
+      }
+    }
+    return false;
   }
   /**
    * The stress job
@@ -249,15 +364,37 @@ public class StressExec {
           new LinkedBlockingQueue<>(this.maxQueriesInFlight * 1000);
       final List<QueryConfig> queryPool = getQueries();
       final Map<String, QueryGroup> queryGroups = getStringQueryGroupMap();
+      if (queriesSequence == QueriesSequence.SEQUENTIAL) {
+        queryIndex = new AtomicInteger(this.queryIndexForRestart);
+      }
       final ExecutorService executorService =
           new ThreadPoolExecutor(
               this.maxQueriesInFlight, this.maxQueriesInFlight, 0L, TimeUnit.MILLISECONDS, queue);
       final Instant d = Instant.now();
       startReporting(d);
       try {
-        monitorForEnd(d, executorService);
+        monitorForEnd(d, executorService, queryPool.size());
         while (!executorService.isShutdown()) {
-          final int nextQuery = random.nextInt(queryPool.size());
+          final int nextQuery;
+          if (queriesSequence == QueriesSequence.SEQUENTIAL) {
+            if (queryIndex.get() + 1 < queryPool.size()) {
+              nextQuery = queryIndex.incrementAndGet();
+            } else {
+              final int waitTime = 10;
+              System.out.println(
+                  "finished submitting queries, waiting "
+                      + waitTime
+                      + "s for latest queries to finish...");
+              Thread.sleep(
+                  waitTime
+                      * 1000); // this should be enough time to trigger executorService shutdown
+              continue;
+            }
+          } else if (queriesSequence == QueriesSequence.RANDOM) {
+            nextQuery = random.nextInt(queryPool.size());
+          } else {
+            throw new RuntimeException("unexpected queriesSequence: " + queriesSequence);
+          }
           final QueryConfig query = queryPool.get(nextQuery);
           final List<Query> mappedSqls = mapSql(query, queryGroups);
           for (final Query mappedSql : mappedSqls) {
@@ -286,7 +423,7 @@ public class StressExec {
     return 0;
   }
 
-  private void monitorForEnd(Instant d, ExecutorService executorService) {
+  private void monitorForEnd(Instant d, ExecutorService executorService, Integer numQueries) {
     new Thread(
             () -> {
               while (true) {
@@ -297,10 +434,11 @@ public class StressExec {
                 }
                 final Instant now = Instant.now();
                 long msElapsed = now.toEpochMilli() - d.toEpochMilli();
-                if (msElapsed > durationTargetMS) {
+                if (msElapsed > durationTargetMS || queryIndex.get() + 1 >= numQueries) {
                   final int submitted = submittedCounter.get();
                   final int successful = successfulCounter.get();
                   final int failures = failureCounter.get();
+                  final int index = queryIndex.get();
                   final long secondsElapsed = msElapsed / 1000;
                   try {
                     Thread.sleep(5 * 1000);
@@ -310,14 +448,15 @@ public class StressExec {
                   System.out.printf(
                       "%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
                           + " successful per second: %.2f; failure rate: %.2f %% - time elapsed:"
-                          + " %s/%s%n",
+                          + " %s/%s - last query index: %d%n",
                       Instant.now(),
                       submitted,
                       successful,
                       (float) submitted / secondsElapsed,
                       ((float) failures / submitted) * 100.0,
                       Human.getHumanDurationFromMillis(msElapsed),
-                      Human.getHumanDurationFromMillis(durationTargetMS));
+                      Human.getHumanDurationFromMillis(durationTargetMS),
+                      index);
                   executorService.shutdownNow();
                 }
               }
