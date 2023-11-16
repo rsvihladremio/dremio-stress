@@ -51,7 +51,7 @@ import picocli.CommandLine;
             + "                {\n"
             + "                  \"query\": \"select * FROM"
             + " Samples.\\\"samples.dremio.com\\\".\\\"SF weather 2018-2019.csv\\\" where"
-            + " \\\"DATE\\\" between ':start' and ':end',\n"
+            + " \\\"DATE\\\" between ':start' and ':end'\",\n"
             + "                  \"frequency\": 1,\n"
             + "                  \"parameters\": {\n"
             + "                    \"start\": [\n"
