@@ -29,6 +29,14 @@ java -jar dremio-stress.jar -g QUERIES_JSON --protocol JDBC "jdbc:arrow-flight-s
 java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
 ```
 
+## Run via Legacy JDBC 
+
+
+### Run via Docker
+
+```bash
+docker run -it --pull=always -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress -g QUERIES_JSON --protocol LegacyJDBC -l "jdbc:dremio:direct=host.docker.internal:31010;user=dremio;password=dremio123"  /mnt/queries.json
+```
 ## Example stress.json files
 
 ### Using queryGroups to preform several ops in order
