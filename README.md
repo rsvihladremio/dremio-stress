@@ -14,7 +14,7 @@ java -jar dremio-stress.jar -g STRESS_JSON -u dremio  -p dremio123 -l http://loc
 ### Run via Docker
 
 ```bash
-docker run -it --pull=always -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/queries.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0-beta2 dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/queries.json
 ```
 
 ### JDBC Directly With a Binary
@@ -35,7 +35,7 @@ java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sq
 ### Run via Docker
 
 ```bash
-docker run -it --pull=always -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress dremio-stress -g QUERIES_JSON --protocol LegacyJDBC -l "jdbc:dremio:direct=host.docker.internal:31010;user=dremio;password=dremio123"  /mnt/queries.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0-beta2 dremio-stress -g QUERIES_JSON --protocol LegacyJDBC -l "jdbc:dremio:direct=host.docker.internal:31010;user=dremio;password=dremio123"  /mnt/queries.json
 ```
 ## Example stress.json files
 
