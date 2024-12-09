@@ -15,7 +15,8 @@ package com.dremio.support.diagnostics.stress;
 
 public enum Protocol {
   HTTP,
-  JDBC;
+  JDBC,
+  LegacyJDBC;
 
   @Override
   public String toString() {
@@ -24,6 +25,8 @@ public enum Protocol {
       protocolString = "HTTP";
     } else if (this.ordinal() == 1) {
       protocolString = "JDBC";
+    } else if (this.ordinal() == 2) {
+      protocolString = "LegacyJDBC";
     } else {
       protocolString = null;
     }

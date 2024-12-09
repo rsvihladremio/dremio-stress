@@ -118,7 +118,7 @@ public class DremioStress implements Callable<Integer> {
   /** protocol to use */
   @CommandLine.Option(
       names = {"--protocol"},
-      description = "protocol to use HTTP or JDBC",
+      description = "protocol to use HTTP, JDBC or LegacyJDBC",
       defaultValue = "HTTP")
   private Protocol protocol;
 

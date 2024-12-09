@@ -13,91 +13,24 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Collection;
 import java.util.logging.Logger;
 
-public class DremioArrowFlightJDBCDriver implements DremioApi {
+public class DremioArrowFlightJDBCDriver extends AbstractDremioJDBCDriver {
 
   private static final Logger logger =
       Logger.getLogger(DremioArrowFlightJDBCDriver.class.getName());
-  private final Connection connection;
-  private final Object currentContextLock = new Object();
-  private String currentContext = "";
 
-  public DremioArrowFlightJDBCDriver(String url) {
-    try {
-      Class.forName("org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver");
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-    try {
-      connection = DriverManager.getConnection(url);
-      // use con here
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+  @Override
+  protected String getDriverClass() {
+    return "org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver";
   }
 
-  /**
-   * runs a sql statement over jdbc
-   *
-   * @param sql sql string to submit to dremio
-   * @param table
-   * @return the result of the job
-   * @throws IOException occurs when the underlying apiCall does, typically a problem with handling
-   *     of the body
-   */
   @Override
-  public DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException {
-    final String context;
-    if (table == null) {
-      context = "";
-    } else {
-      context = String.join(".", table);
-    }
-    synchronized (currentContextLock) {
-      if (!currentContext.equals(context)) {
-        currentContext = context;
-        logger.info(() -> String.format("changing context %s", context));
-        try {
-          if (!connection.createStatement().execute("USE " + context)) {
-            throw new RuntimeException("failed using USE");
-          }
-          final boolean success = connection.createStatement().execute(sql);
-          if (!success) {
-            throw new RuntimeException("unhandled exception executing sql");
-          }
-          final DremioApiResponse response = new DremioApiResponse();
-          response.setSuccessful(true);
-          return response;
-        } catch (SQLException ex) {
-          throw new RuntimeException(ex);
-        }
-      }
-    }
-    try {
-      if (connection.createStatement().execute(sql)) {
-        final DremioApiResponse response = new DremioApiResponse();
-        response.setSuccessful(true);
-        return response;
-      }
-      throw new RuntimeException("unhandled exception");
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+  protected Logger getLogger() {
+    return logger;
   }
 
-  /**
-   * The http URL for the dremio server
-   *
-   * @return return the url used to access Dremio
-   */
-  @Override
-  public String getUrl() {
-    return "";
+  public DremioArrowFlightJDBCDriver(String connectionString) {
+    super(connectionString);
   }
 }

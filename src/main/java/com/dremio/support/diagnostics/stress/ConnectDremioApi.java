@@ -30,6 +30,8 @@ public class ConnectDremioApi implements ConnectApi {
     if (protocol.equals(Protocol.HTTP)) {
       HttpApiCall apiCall = new HttpApiCall(ignoreSSL);
       return new DremioV3Api(apiCall, auth, host, timeoutSeconds);
+    } else if (protocol.equals(Protocol.LegacyJDBC)) {
+      return new DremioLegacyJDBCDriver(host);
     }
     return new DremioArrowFlightJDBCDriver(host);
   }
