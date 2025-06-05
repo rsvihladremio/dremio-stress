@@ -22,6 +22,7 @@ public class QueryConfig {
   private String queryGroup;
   private int frequency;
   private Map<String, List<Object>> parameters;
+  private Sequence sequence;
   private List<String> sqlContext;
 
   public String getQuery() {
@@ -54,6 +55,14 @@ public class QueryConfig {
 
   public void setParameters(Map<String, List<Object>> parameters) {
     this.parameters = parameters;
+  }
+
+  public Sequence getSequence() {
+    return sequence;
+  }
+
+  public void setSequence(Sequence sequence) {
+    this.sequence = sequence;
   }
 
   public List<String> getSqlContext() {

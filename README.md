@@ -45,30 +45,42 @@ NOTE: the "schema-ops" group  will be called roughly 10% of the time
 
 ```json
 {
-"queryGroups": [
+  "queryGroups": [
 	{
-	"name": "schema-ops",
-	"queries": [
-		"drop table if exists samples.\"samples.dremio.com\".\"A\"",
+	  "name": "schema-ops",
+	  "queries": [
+        "drop table if exists samples.\"samples.dremio.com\".\"A\"",
 		"create table samples.\"samples.dremio.com\".\"A\" STORE AS (type => 'iceberg') AS SELECT \"a\",\"b\" FROM (values('a', 'b')) as t(\"a\",\"b\")",
 		"select * from  samples.\"samples.dremio.com\".\"A\""
-	]
-	}
-],
-"queries": [
-	{
-	"queryGroup": "schema-ops",
-	"frequency": 1
-	},
-	{
-	"query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end'",
-	"frequency": 9,
-	"parameters": {
-		"start": ["2018-02-04", "2018-02-05"],
-		"end": ["2018-02-14","2018-02-15"]
-	}
-	}
-]
+	  ]
+    }
+  ],
+  "queries": [
+    {
+      "queryGroup": "schema-ops",
+      "frequency": 1
+    },
+    {
+      "query": "select * FROM Samples.\"samples.dremio.com\".\"SF weather 2018-2019.csv\" where \"DATE\" between ':start' and ':end' and :seq = passenger_count",
+      "frequency": 9,
+      "parameters": {
+        "start": [
+          "2018-02-04",
+          "2018-02-05"
+        ],
+        "end": [
+          "2018-02-14",
+          "2018-02-15"
+        ]
+      },
+      "sequence": {
+        "name": "seq",
+        "start": 1,
+        "end": 20,
+        "step": 1
+      }
+    }
+  ]
 }
 ```
 
