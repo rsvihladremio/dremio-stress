@@ -23,7 +23,6 @@ import java.security.InvalidParameterException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -33,6 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -511,37 +512,43 @@ public class StressExec {
       parameters = q.getParameters();
     }
     final List<Query> mappedQueries = new ArrayList<>();
+    Pattern tokenDetector = Pattern.compile("(:\\w+)");
     for (final String sql : rawQueries) {
-      final Query query = new Query();
-      query.setContext(q.getSqlContext());
-      if (parameters.size() > 0) {
-        final String[] tokens = sql.split(" ");
-        final int words = tokens.length;
-        for (int i = 0; i < words; i++) {
-          final String word = tokens[i];
-          for (final Entry<String, List<Object>> x : parameters.entrySet()) {
-            if (word.equals(":" + x.getKey())) {
-              final int valueCount = x.getValue().size();
-              if (valueCount > 0) {
-                final int valueIndex = random.nextInt(valueCount);
-                final String v = String.valueOf(x.getValue().get(valueIndex));
-                tokens[i] = v;
-              }
-            } else if (word.equals("':" + x.getKey() + "'")) {
-              final int valueCount = x.getValue().size();
-              if (valueCount > 0) {
-                final int valueIndex = random.nextInt(valueCount);
-                final String v = String.valueOf(x.getValue().get(valueIndex));
-                tokens[i] = "'" + v + "'";
-              }
+      String queryText = sql;
+      if (!parameters.isEmpty()) {
+        Matcher matcher = tokenDetector.matcher(queryText);
+        while (matcher.find()) {
+          String detectedToken = matcher.group(1);
+          String parameterName = detectedToken.substring(1);
+          if (parameters.containsKey(parameterName)) {
+            List<Object> value = parameters.get(parameterName);
+            if (!value.isEmpty()) {
+              final int valueIndex = random.nextInt(value.size());
+              final String v = value.get(valueIndex).toString();
+              queryText = queryText.replaceAll(detectedToken, v);
             }
           }
         }
-        query.setQueryText(String.join(" ", tokens));
-      } else {
-        query.setQueryText(sql);
       }
-      mappedQueries.add(query);
+
+      if (q.getSequence() != null) {
+        String parameterName = q.getSequence().getName();
+        int start = q.getSequence().getStart();
+        int end = q.getSequence().getEnd();
+        int step = q.getSequence().getStep();
+        String searchText = String.format(":%s", parameterName);
+        for (int i = start; i <= end; i += step) {
+          Query query = new Query();
+          String queryTextWithSequence = queryText.replaceAll(searchText, String.valueOf(i));
+          query.setQueryText(queryTextWithSequence);
+          mappedQueries.add(query);
+        }
+      } else {
+        Query query = new Query();
+        query.setContext(q.getSqlContext());
+        query.setQueryText(queryText);
+        mappedQueries.add(query);
+      }
     }
     return mappedQueries;
   }
