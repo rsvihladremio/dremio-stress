@@ -13,14 +13,14 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test class for HttpApiCall. This class tests the constructor behavior and basic functionality
@@ -32,7 +32,7 @@ public class HttpApiCallTest {
   public void testConstructorWithIgnoreSSLFalse() {
     // Test that constructor works without throwing exceptions
     HttpApiCall apiCall = new HttpApiCall(false);
-    assertNotNull("HttpApiCall should be created successfully", apiCall);
+    assertNotNull(apiCall, "HttpApiCall should be created successfully");
   }
 
   @Test
@@ -40,14 +40,14 @@ public class HttpApiCallTest {
     // Test that constructor works with SSL ignore enabled
     // This should configure SSL to ignore certificate validation
     HttpApiCall apiCall = new HttpApiCall(true);
-    assertNotNull("HttpApiCall should be created successfully with SSL ignore", apiCall);
+    assertNotNull(apiCall, "HttpApiCall should be created successfully with SSL ignore");
 
     // Verify that SSL context was modified (we can't easily test the exact configuration
     // but we can verify the constructor completed without exceptions)
     SSLContext defaultContext = null;
     try {
       defaultContext = SSLContext.getDefault();
-      assertNotNull("Default SSL context should be available", defaultContext);
+      assertNotNull(defaultContext, "Default SSL context should be available");
     } catch (Exception e) {
       fail("Should be able to get default SSL context: " + e.getMessage());
     }
@@ -59,60 +59,84 @@ public class HttpApiCallTest {
     // We can't easily force this condition, but we can verify the constructor behavior
     try {
       HttpApiCall apiCall = new HttpApiCall(true);
-      assertNotNull("HttpApiCall should be created even with SSL ignore", apiCall);
+      assertNotNull(apiCall, "HttpApiCall should be created even with SSL ignore");
     } catch (RuntimeException e) {
       // This would happen if SSL configuration failed
       assertTrue(
-          "Exception should be related to SSL configuration",
-          e.getMessage() != null || e.getCause() != null);
+          e.getMessage() != null || e.getCause() != null,
+          "Exception should be related to SSL configuration");
     }
   }
 
-  @Test(expected = IOException.class)
-  public void testSubmitGetWithInvalidUrl() throws Exception {
+  @Test
+  public void testSubmitGetWithInvalidUrl() {
     HttpApiCall apiCall = new HttpApiCall(false);
-    URL url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    URL url;
+    try {
+      url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    } catch (Exception e) {
+      fail("URL creation should not fail");
+      return;
+    }
     Map<String, String> headers = new HashMap<>();
 
     // This should throw IOException due to unknown host
-    apiCall.submitGet(url, headers);
+    assertThrows(IOException.class, () -> apiCall.submitGet(url, headers));
   }
 
-  @Test(expected = IOException.class)
-  public void testSubmitPostWithInvalidUrl() throws Exception {
+  @Test
+  public void testSubmitPostWithInvalidUrl() {
     HttpApiCall apiCall = new HttpApiCall(false);
-    URL url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    URL url;
+    try {
+      url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    } catch (Exception e) {
+      fail("URL creation should not fail");
+      return;
+    }
     Map<String, String> headers = new HashMap<>();
 
     // This should throw IOException due to unknown host
-    apiCall.submitPost(url, headers, "test body");
+    assertThrows(IOException.class, () -> apiCall.submitPost(url, headers, "test body"));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testSubmitGetWithNullHeaders() throws Exception {
+  @Test
+  public void testSubmitGetWithNullHeaders() {
     HttpApiCall apiCall = new HttpApiCall(false);
-    URL url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    URL url;
+    try {
+      url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    } catch (Exception e) {
+      fail("URL creation should not fail");
+      return;
+    }
 
     // This should throw NullPointerException because the implementation
     // doesn't handle null headers properly (calls headers.entrySet() without null check)
-    apiCall.submitGet(url, null);
+    assertThrows(NullPointerException.class, () -> apiCall.submitGet(url, null));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testSubmitPostWithNullHeaders() throws Exception {
+  @Test
+  public void testSubmitPostWithNullHeaders() {
     HttpApiCall apiCall = new HttpApiCall(false);
-    URL url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    URL url;
+    try {
+      url = new URL("http://invalid-host-that-does-not-exist.com/test");
+    } catch (Exception e) {
+      fail("URL creation should not fail");
+      return;
+    }
 
     // This should throw NullPointerException because the implementation
     // doesn't handle null headers properly (calls headers.entrySet() without null check)
-    apiCall.submitPost(url, null, "test body");
+    assertThrows(NullPointerException.class, () -> apiCall.submitPost(url, null, "test body"));
   }
 
   @Test
   public void testApiCallInterface() {
     // Test that HttpApiCall properly implements ApiCall interface
     HttpApiCall apiCall = new HttpApiCall(false);
-    assertTrue("HttpApiCall should implement ApiCall interface", apiCall instanceof ApiCall);
+    assertTrue(apiCall instanceof ApiCall, "HttpApiCall should implement ApiCall interface");
   }
 
   @Test
@@ -129,7 +153,7 @@ public class HttpApiCallTest {
     } catch (IOException e) {
       // Expected - the method should handle null body gracefully
       // but still fail on the invalid URL
-      assertTrue("Exception should be related to connection", true);
+      assertTrue(true, "Exception should be related to connection");
     }
   }
 
@@ -147,7 +171,7 @@ public class HttpApiCallTest {
     } catch (IOException e) {
       // Expected - the method should handle empty body gracefully
       // but still fail on the invalid URL
-      assertTrue("Exception should be related to connection", true);
+      assertTrue(true, "Exception should be related to connection");
     }
   }
 
@@ -167,7 +191,7 @@ public class HttpApiCallTest {
       fail("Should have thrown IOException for invalid URL");
     } catch (IOException e) {
       // Expected - headers should be processed but connection should fail
-      assertTrue("Exception should be related to connection", true);
+      assertTrue(true, "Exception should be related to connection");
     }
   }
 }
