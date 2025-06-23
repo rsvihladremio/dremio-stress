@@ -13,20 +13,27 @@
  */
 package com.dremio.support.diagnostics.stress;
 
+import java.util.Locale;
+
+/**
+ * Defines the types of input files that can be used to generate queries for the stress tool. Each
+ * enum constant represents a specific format or structure of the input file, such as a custom
+ * stress JSON format or a simple list of queries.
+ */
 public enum QueriesGeneratorFileType {
+  /** Represents a file in the stress tool's specific JSON format (`stress.json`). */
   STRESS_JSON,
+  /** Represents a file containing a simple list of queries in JSON format (`queries.json`). */
   QUERIES_JSON;
 
+  /**
+   * Returns the string representation of the file type in uppercase.
+   *
+   * @return the file type name as an uppercase string.
+   */
   @Override
   public String toString() {
-    final String fileType;
-    if (this.ordinal() == 0) {
-      fileType = "STRESS_JSON";
-    } else if (this.ordinal() == 1) {
-      fileType = "QUERIES_JSON";
-    } else {
-      fileType = null;
-    }
-    return fileType;
+    // Using name() is safer than ordinal() for string representation
+    return name().toUpperCase(Locale.ROOT);
   }
 }

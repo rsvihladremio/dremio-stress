@@ -16,17 +16,22 @@ package com.dremio.support.diagnostics.stress;
 import java.io.IOException;
 import java.nio.file.Path;
 
-/** responsible for providing an interface to newly created directories and files */
+/**
+ * Interface responsible for providing access to newly created directories and files. This
+ * abstraction allows for different implementations of file system operations, which can be useful
+ * for testing or supporting different storage backends.
+ */
 public interface FileMaker {
   /**
-   * generates a new directory for consumers. This is not guarenteed to be managed by the
-   * implementer and if will be up to the consumer to remove or clean up any created directory
-   * (unless it is managed by the operating system).
+   * Generates a new directory for consumers.
    *
-   * <p>i.e. It is not safe to assume created directories will be cleaned up.
+   * <p>Note: This is not guaranteed to be managed by the implementer. It will be up to the consumer
+   * to remove or clean up any created directory (unless it is managed by the operating system).
    *
-   * @return path to newly created dir
-   * @throws IOException due to being unable to create new dir
+   * <p>i.e. It is not safe to assume created directories will be cleaned up automatically.
+   *
+   * @return Path to the newly created directory
+   * @throws IOException If unable to create the new directory
    */
   Path getNewDir() throws IOException;
 }

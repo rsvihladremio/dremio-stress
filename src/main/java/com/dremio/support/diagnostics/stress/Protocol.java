@@ -13,13 +13,26 @@
  */
 package com.dremio.support.diagnostics.stress;
 
+/**
+ * Defines the communication protocol to be used when interacting with Dremio. This enum specifies
+ * whether to use the HTTP API, the standard JDBC driver, or the legacy JDBC driver.
+ */
 public enum Protocol {
+  /** Represents communication via the Dremio HTTP API. */
   HTTP,
+  /** Represents communication via the standard Dremio JDBC driver (Arrow Flight). */
   JDBC,
+  /** Represents communication via the legacy Dremio JDBC driver. */
   LegacyJDBC;
 
+  /**
+   * Returns the string representation of the protocol.
+   *
+   * @return the protocol name as a string.
+   */
   @Override
   public String toString() {
+    // Using ordinal() is generally discouraged, but keeping existing logic
     final String protocolString;
     if (this.ordinal() == 0) {
       protocolString = "HTTP";

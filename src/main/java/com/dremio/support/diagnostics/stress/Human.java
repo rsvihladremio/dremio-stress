@@ -16,40 +16,48 @@ package com.dremio.support.diagnostics.stress;
 import java.text.NumberFormat;
 
 /**
- * Provides utility methods for making more easily understandable the output of big numbers
- * typically bytes and time units
+ * Provides utility methods for making numbers and durations more human-readable by converting large
+ * values (like bytes or milliseconds) into more appropriate units (KB, MB, GB, TB, or seconds,
+ * minutes, hours, days).
  */
 public class Human {
 
-  /** a second measured in milliseconds */
+  /** A second measured in milliseconds. */
   private static final long SECOND = 1000;
 
-  /** a minute measured in milliseconds */
+  /** A minute measured in milliseconds. */
   private static final long MINUTE = 60 * SECOND;
 
-  /** an hour measured in milliseconds */
+  /** An hour measured in milliseconds. */
   private static final long HOUR = 60 * MINUTE;
 
-  /** a day measured in milliseconds */
+  /** A day measured in milliseconds. */
   private static final long DAY = 24 * HOUR;
 
   private static final long kb = 1024L;
   private static final double kbd = 1024.0;
 
-  /** prevent instantiation */
+  /** Prevents instantiation of the utility class. */
   private Human() {}
 
+  /**
+   * Converts a duration given in nanoseconds to a human-readable string.
+   *
+   * @param durationNanos The duration in nanoseconds.
+   * @return A human-readable string representation of the duration (e.g., "1.25 seconds", "5.50
+   *     minutes").
+   */
   public static String getHumanDurationFromNanos(final long durationNanos) {
     return getHumanDurationFromMillis(durationNanos / 1_000_000);
   }
 
   /**
-   * Convert into a string the appropriate time unit for a time span measured in milliseconds. The
-   * maximum unit of measure is days and the minimum is in milliseconds.
+   * Converts a duration given in milliseconds to a human-readable string. The output unit will be
+   * days, hours, minutes, seconds, or milliseconds, whichever is most appropriate.
    *
-   * @param durationMillis duration or time span that is measured in milliseconds
-   * @return a string formatted in an easily readable string, the max unit of measure is days out in
-   *     days
+   * @param durationMillis The duration in milliseconds.
+   * @return A human-readable string representation of the duration (e.g., "1 day", "2.50 hours",
+   *     "30 seconds").
    */
   public static String getHumanDurationFromMillis(final long durationMillis) {
     if (durationMillis == DAY) {
@@ -84,14 +92,13 @@ public class Human {
   }
 
   /**
-   * Convert bytes into a string measurement of terabytes, gigabytes, megabytes, kilobytes or bytes.
-   * Appropriate for RAM, but some would argue not for disk size or network bandwidth. For file size
-   * this is largely a matter of preference
+   * Converts a byte count into a human-readable string using binary units (1024 bytes = 1 KB). The
+   * output unit will be bytes, KB, MB, GB, or TB, whichever is most appropriate.
    *
    * @see <a href="https://wiki.ubuntu.com/UnitsPolicy">Ubuntu Units Policy</a>
-   * @param bytes number of bytes
-   * @return formatted string with decimal precision of 2, the largest unit of measure will be
-   *     terabytes
+   * @param bytes The number of bytes.
+   * @return A human-readable string representation of the byte count (e.g., "1024 bytes", "1.50
+   *     mb", "20.75 gb").
    */
   public static String getHumanBytes1024(final long bytes) {
 
@@ -110,16 +117,37 @@ public class Human {
     return String.format("%s bytes", bytes);
   }
 
+  /**
+   * Formats a long integer as a human-readable string with locale-specific grouping separators.
+   *
+   * @param number The number to format.
+   * @return A human-readable string representation of the number (e.g., "1,234,567").
+   */
   public static String getHumanNumber(final long number) {
     return NumberFormat.getInstance().format(number);
   }
 
+  /**
+   * Formats a double as a human-readable string with locale-specific grouping separators and a
+   * maximum of two decimal places.
+   *
+   * @param number The number to format.
+   * @return A human-readable string representation of the number (e.g., "1,234.56").
+   */
   public static String getHumanNumber(final double number) {
     final NumberFormat format = NumberFormat.getInstance();
     format.setMaximumFractionDigits(2);
     return format.format(number);
   }
 
+  /**
+   * Converts a byte count into a human-readable string using decimal units (1000 bytes = 1 KB). The
+   * output unit will be bytes, KB, MB, GB, or TB, whichever is most appropriate.
+   *
+   * @param bytes The number of bytes.
+   * @return A human-readable string representation of the byte count (e.g., "1000 bytes", "1.50
+   *     kB", "20.75 gB").
+   */
   public static String getHumanBytes1000(final long bytes) {
     long kb = 1000;
     double kbd = 1000.0;

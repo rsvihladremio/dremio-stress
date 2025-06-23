@@ -22,33 +22,41 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.logging.Logger;
 
-/** DremioApi business logic for interacting with the dremio rest api */
+/**
+ * Implementation of the DremioApi interface that interacts with Dremio's REST API (version 3). This
+ * class handles authentication, SQL query submission, and job status monitoring.
+ */
 public class DremioV3Api implements DremioApi {
 
-  /** unmodifiable map of base headers used in all requests that are authenticated */
+  /** Unmodifiable map of base headers used in all authenticated requests. */
   private final Map<String, String> baseHeaders;
 
+  /** Logger for this class. */
   private static final Logger logger = Logger.getLogger(DremioV3Api.class.getName());
 
-  // base url for the api typically http/https hostname and port. Does not include the ending /
+  /**
+   * Base URL for the API (typically http/https hostname and port). Does not include the ending /.
+   */
   private final String baseUrl;
-  // the actual http implementation
+
+  /** The actual HTTP implementation for making API calls. */
   private final ApiCall apiCall;
 
+  /** Timeout in seconds for SQL query operations. */
   private final int timeoutSeconds;
 
   /**
-   * DremioApi provides the business logic for making API calls. The constructor will connect to the
-   * auth api, so we can store the auth token for subsequent requests.
+   * Constructs a DremioV3Api instance and authenticates with the Dremio server. The constructor
+   * will connect to the auth API, so we can store the auth token for subsequent requests.
    *
-   * @param apiCall implementation that makes the http calls
-   * @param auth generates a valid auth header
-   * @param baseUrl base url for the api typically http/https hostname and port. Does not include
-   *     the ending /
-   * @param fileMaker creates files for nfs data sources
-   * @param timeoutSeconds how long to try runSQL operations
-   * @throws IOException throws when unable to read the response body or unable to attach a request
-   *     body
+   * @param apiCall Implementation that makes the HTTP calls
+   * @param auth Username and password authentication object
+   * @param baseUrl Base URL for the API (typically http/https hostname and port without trailing
+   *     slash)
+   * @param timeoutSeconds How long to try runSQL operations before timing out
+   * @throws IOException When unable to read the response body or unable to attach a request body
+   * @throws RuntimeException When authentication fails or the response doesn't contain an auth
+   *     token
    */
   public DremioV3Api(ApiCall apiCall, UsernamePasswordAuth auth, String baseUrl, int timeoutSeconds)
       throws IOException {
@@ -78,12 +86,13 @@ public class DremioV3Api implements DremioApi {
   }
 
   /**
-   * checkJobStatus is useful for seeing if a sql operation is complete and if it succeeded
+   * Checks the status of a job to determine if it has completed and whether it succeeded.
    *
-   * @param jobId job idea to check
-   * @return the job state, which is just a single word
-   * @throws IOException occurs when the underlying apiCall does, typically a problem with handling
-   *     of the body
+   * @param jobId Job ID to check
+   * @return A JobStatusResponse containing the job state and any error message
+   * @throws IOException When the underlying API call fails
+   * @throws InvalidParameterException When the job ID is null or empty
+   * @throws RuntimeException When the response is invalid or missing required fields
    */
   private JobStatusResponse checkJobStatus(String jobId) throws IOException {
     // check for empty job id
@@ -126,12 +135,13 @@ public class DremioV3Api implements DremioApi {
   }
 
   /**
-   * runs a sql statement against the rest API
+   * Runs a SQL statement against the Dremio REST API. This method submits the SQL query, monitors
+   * the job status until completion or timeout, and returns an appropriate response.
    *
-   * @param sql sql string to submit to dremio
-   * @return the result of the job
-   * @throws IOException occurs when the underlying apiCall does, typically a problem with handling
-   *     of the body
+   * @param sql SQL string to submit to Dremio
+   * @param contexts Collection of context strings (e.g., schema paths)
+   * @return A DremioApiResponse indicating success or failure with appropriate error messages
+   * @throws IOException When the underlying API call fails
    */
   @Override
   public DremioApiResponse runSQL(String sql, Collection<String> contexts) throws IOException {
@@ -198,7 +208,11 @@ public class DremioV3Api implements DremioApi {
     }
   }
 
-  /** @return return the url used to access Dremio */
+  /**
+   * Returns the base URL used to access the Dremio server.
+   *
+   * @return The base URL string
+   */
   @Override
   public String getUrl() {
     return this.baseUrl;

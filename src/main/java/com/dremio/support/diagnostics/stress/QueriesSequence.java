@@ -13,20 +13,26 @@
  */
 package com.dremio.support.diagnostics.stress;
 
+import java.util.Locale;
+
+/**
+ * Defines the sequence in which queries should be executed by the stress tool. This determines
+ * whether queries are picked randomly or in the order they appear.
+ */
 public enum QueriesSequence {
+  /** Queries will be picked and executed in a random order. */
   RANDOM,
+  /** Queries will be picked and executed in the order they are defined. */
   SEQUENTIAL;
 
+  /**
+   * Returns the string representation of the sequence type in uppercase.
+   *
+   * @return the sequence type name as an uppercase string.
+   */
   @Override
   public String toString() {
-    final String sequence;
-    if (this.ordinal() == 0) {
-      sequence = "RANDOM";
-    } else if (this.ordinal() == 1) {
-      sequence = "SEQUENTIAL";
-    } else {
-      sequence = null;
-    }
-    return sequence;
+    // Using name() is safer than ordinal() for string representation
+    return name().toUpperCase(Locale.ROOT);
   }
 }
