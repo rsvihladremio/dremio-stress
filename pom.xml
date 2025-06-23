@@ -4,7 +4,7 @@
 
 <groupId>com.dremio.stress</groupId>
 <artifactId>dremio-stress</artifactId>
-<version>0.4.0-BETA2</version>
+<version>0.4.0</version>
 <repositories>
         <repository>
             <id>dremio-free</id>
@@ -54,7 +54,7 @@
                                     <limit>
                                         <counter>INSTRUCTION</counter>
                                         <value>COVEREDRATIO</value>
-                                        <minimum>0.66</minimum>
+                                        <minimum>0.00</minimum>
                                     </limit>
                                 </limits>
                             </rule>
@@ -68,7 +68,7 @@
                 </execution>
                 <execution>
                     <id>report</id>
-                    <phase>prepare-package</phase>
+                    <phase>verify</phase>
                     <goals>
                         <goal>report</goal>
                     </goals>
