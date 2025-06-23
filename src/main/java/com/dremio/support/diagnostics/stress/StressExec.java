@@ -40,46 +40,44 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 /**
  * StressExec is the main execution engine for running stress tests against Dremio.
  *
- * This class orchestrates the execution of multiple SQL queries concurrently to simulate
- * load on a Dremio cluster. It supports various configuration options including:
- * - Sequential or random query execution
- * - Configurable concurrency levels
- * - Query parameter substitution
- * - Real-time progress reporting
- * - Support for both stress configuration files and query JSON files
+ * <p>This class orchestrates the execution of multiple SQL queries concurrently to simulate load on
+ * a Dremio cluster. It supports various configuration options including: - Sequential or random
+ * query execution - Configurable concurrency levels - Query parameter substitution - Real-time
+ * progress reporting - Support for both stress configuration files and query JSON files
  *
- * The stress test can be configured to run for a specific duration or until all queries
- * in a sequence have been executed. Progress is reported every 5 seconds showing
- * throughput, success/failure rates, and elapsed time.
+ * <p>The stress test can be configured to run for a specific duration or until all queries in a
+ * sequence have been executed. Progress is reported every 5 seconds showing throughput,
+ * success/failure rates, and elapsed time.
  */
 public class StressExec {
 
   private static final Logger logger = Logger.getLogger(StressExec.class.getName());
 
   // Core configuration fields
-  private final Random random;                          // Random number generator for query selection
-  private final File jsonConfig;                       // Configuration file or directory containing queries
-  private final QueriesGeneratorFileType fileType;     // Type of configuration file (STRESS_JSON or QUERIES_JSON)
-  private final QueriesSequence queriesSequence;       // Execution order (SEQUENTIAL or RANDOM)
-  private final Integer queryIndexForRestart;          // Starting index for sequential execution
-  private final Integer limitResults;                  // Optional limit to add to queries
+  private final Random random; // Random number generator for query selection
+  private final File jsonConfig; // Configuration file or directory containing queries
+  private final QueriesGeneratorFileType
+      fileType; // Type of configuration file (STRESS_JSON or QUERIES_JSON)
+  private final QueriesSequence queriesSequence; // Execution order (SEQUENTIAL or RANDOM)
+  private final Integer queryIndexForRestart; // Starting index for sequential execution
+  private final Integer limitResults; // Optional limit to add to queries
 
   // Connection configuration
-  private final Protocol protocol;                     // HTTP or HTTPS
-  private final String dremioHost;                     // Dremio coordinator hostname
-  private final String dremioUser;                     // Username for authentication
-  private final String dremioPassword;                 // Password for authentication
-  private final Integer timeoutSeconds;                // Query timeout in seconds
-  private final boolean skipSSLVerification;           // Whether to skip SSL certificate verification
+  private final Protocol protocol; // HTTP or HTTPS
+  private final String dremioHost; // Dremio coordinator hostname
+  private final String dremioUser; // Username for authentication
+  private final String dremioPassword; // Password for authentication
+  private final Integer timeoutSeconds; // Query timeout in seconds
+  private final boolean skipSSLVerification; // Whether to skip SSL certificate verification
 
   // Execution configuration
-  private final long durationTargetMS;                 // Target duration for stress test in milliseconds
-  private final Integer maxQueriesInFlight;            // Maximum concurrent queries
-  private final ConnectApi connectApi;                 // API connection interface
+  private final long durationTargetMS; // Target duration for stress test in milliseconds
+  private final Integer maxQueriesInFlight; // Maximum concurrent queries
+  private final ConnectApi connectApi; // API connection interface
 
   /**
-   * Primary constructor that creates a StressExec instance with a SecureRandom generator.
-   * This is the main constructor used by external callers.
+   * Primary constructor that creates a StressExec instance with a SecureRandom generator. This is
+   * the main constructor used by external callers.
    *
    * @param connectApi API connection interface for Dremio
    * @param jsonConfig Configuration file or directory containing queries
@@ -87,7 +85,7 @@ public class StressExec {
    * @param queriesSequence Execution order (SEQUENTIAL or RANDOM)
    * @param queryIndexForRestart Starting index for sequential execution (null for beginning)
    * @param limitResults Optional limit to add to queries (null for no limit)
-   * @param protocol Connection protocol (HTTP or HTTPS)
+   * @param protocol Connection protocol (HTTP, JDBC, LegacyJDBC)
    * @param dremioHost Dremio coordinator hostname
    * @param dremioUser Username for authentication
    * @param dremioPassword Password for authentication
@@ -130,8 +128,8 @@ public class StressExec {
   }
 
   /**
-   * Internal constructor that accepts a custom Random instance.
-   * This constructor is primarily used for testing to provide deterministic behavior.
+   * Internal constructor that accepts a custom Random instance. This constructor is primarily used
+   * for testing to provide deterministic behavior.
    *
    * @param random Custom random number generator
    * @param connectApi API connection interface for Dremio
@@ -140,7 +138,7 @@ public class StressExec {
    * @param queriesSequence Execution order (SEQUENTIAL or RANDOM)
    * @param queryIndexForRestart Starting index for sequential execution (null for beginning)
    * @param limitResults Optional limit to add to queries (null for no limit)
-   * @param protocol Connection protocol (HTTP or HTTPS)
+   * @param protocol Connection protocol (HTTP, JDBC, LegacyJDBC)
    * @param dremioHost Dremio coordinator hostname
    * @param dremioUser Username for authentication
    * @param dremioPassword Password for authentication
@@ -183,23 +181,23 @@ public class StressExec {
   }
 
   // Metrics and tracking fields
-  private final AtomicInteger counter = new AtomicInteger(0);           // Total queries processed
-  private final AtomicInteger submittedCounter = new AtomicInteger(0);  // Total queries submitted
-  private final AtomicInteger failureCounter = new AtomicInteger(0);    // Total failed queries
+  private final AtomicInteger counter = new AtomicInteger(0); // Total queries processed
+  private final AtomicInteger submittedCounter = new AtomicInteger(0); // Total queries submitted
+  private final AtomicInteger failureCounter = new AtomicInteger(0); // Total failed queries
   private final AtomicInteger successfulCounter = new AtomicInteger(0); // Total successful queries
-  private final AtomicLong totalDurationMS = new AtomicLong(0);         // Total execution time
+  private final AtomicLong totalDurationMS = new AtomicLong(0); // Total execution time
 
   // Progress reporting fields
-  private final Timer timer = new Timer();                              // Timer for periodic reporting
-  long durationLastRun = 0;                                            // Duration at last report
-  long successfulLastRun = 0;                                          // Successful queries at last report
-  int failuresLastRun = 0;                                             // Failed queries at last report
-  int submittedLastRun = 0;                                            // Submitted queries at last report
-  AtomicInteger queryIndex = new AtomicInteger(-1);                    // Current query index for sequential execution
+  private final Timer timer = new Timer(); // Timer for periodic reporting
+  long durationLastRun = 0; // Duration at last report
+  long successfulLastRun = 0; // Successful queries at last report
+  int failuresLastRun = 0; // Failed queries at last report
+  int submittedLastRun = 0; // Submitted queries at last report
+  AtomicInteger queryIndex = new AtomicInteger(-1); // Current query index for sequential execution
 
   /**
-   * Starts periodic progress reporting that runs every 5 seconds.
-   * Reports include total and incremental metrics for throughput and failure rates.
+   * Starts periodic progress reporting that runs every 5 seconds. Reports include total and
+   * incremental metrics for throughput and failure rates.
    *
    * @param d Start time of the stress test for calculating elapsed time
    */
@@ -208,8 +206,8 @@ public class StressExec {
     timer.schedule(
         new TimerTask() {
           /**
-           * Periodic reporting task that calculates and displays progress metrics.
-           * Runs every 5 seconds to show current throughput, failure rates, and elapsed time.
+           * Periodic reporting task that calculates and displays progress metrics. Runs every 5
+           * seconds to show current throughput, failure rates, and elapsed time.
            */
           public void run() {
             final Instant now = Instant.now();
@@ -244,7 +242,7 @@ public class StressExec {
                 index);
           }
         },
-        5 * 1000,  // Initial delay: 5 seconds
+        5 * 1000, // Initial delay: 5 seconds
         5 * 1000); // Repeat interval: 5 seconds
   }
 
@@ -265,8 +263,8 @@ public class StressExec {
   }
 
   /**
-   * Executes a single query against Dremio and tracks its execution metrics.
-   * This method handles query submission, response validation, timing, and error handling.
+   * Executes a single query against Dremio and tracks its execution metrics. This method handles
+   * query submission, response validation, timing, and error handling.
    *
    * @param dremioApi The Dremio API client to use for query execution
    * @param mappedSql The query object containing SQL text and context
@@ -310,8 +308,8 @@ public class StressExec {
   }
 
   /**
-   * Loads and returns the list of queries to execute based on the configured file type.
-   * Supports both stress configuration files and query JSON files/directories.
+   * Loads and returns the list of queries to execute based on the configured file type. Supports
+   * both stress configuration files and query JSON files/directories.
    *
    * @return List of QueryConfig objects representing the queries to execute
    * @throws RuntimeException if no valid queries are found or files cannot be read
@@ -384,9 +382,9 @@ public class StressExec {
   }
 
   /**
-   * Parses query configurations from a scanner (reading line-by-line JSON).
-   * Each line should contain a JSON object representing a query from Dremio's query history.
-   * Applies filtering to exclude internal queries, failed queries, and DDL/DML operations.
+   * Parses query configurations from a scanner (reading line-by-line JSON). Each line should
+   * contain a JSON object representing a query from Dremio's query history. Applies filtering to
+   * exclude internal queries, failed queries, and DDL/DML operations.
    *
    * @param scanner Scanner to read JSON lines from
    * @return List of QueryConfig objects parsed and filtered from the input
@@ -452,8 +450,8 @@ public class StressExec {
   }
 
   /**
-   * Determines whether a query should be skipped based on filtering criteria.
-   * Filters out internal Dremio queries, failed queries, non-SQL queries, and DDL/DML operations.
+   * Determines whether a query should be skipped based on filtering criteria. Filters out internal
+   * Dremio queries, failed queries, non-SQL queries, and DDL/DML operations.
    *
    * @param row The query row from the JSON file to evaluate
    * @return true if the query should be skipped, false if it should be included
@@ -474,15 +472,15 @@ public class StressExec {
     // Filter out DDL/DML queries that could modify the database state
     String queryText = row.getQueryText().toLowerCase();
     String[] ddlKeywords = {
-      "create ",   // CREATE TABLE, VIEW, etc.
-      "alter ",    // ALTER TABLE, etc.
-      "drop ",     // DROP TABLE, VIEW, etc.
-      "insert ",   // INSERT INTO
-      "update ",   // UPDATE statements
-      "delete ",   // DELETE statements
-      "grant ",    // GRANT permissions
-      "revoke ",   // REVOKE permissions
-      "password "  // Password-related operations
+      "create ", // CREATE TABLE, VIEW, etc.
+      "alter ", // ALTER TABLE, etc.
+      "drop ", // DROP TABLE, VIEW, etc.
+      "insert ", // INSERT INTO
+      "update ", // UPDATE statements
+      "delete ", // DELETE statements
+      "grant ", // GRANT permissions
+      "revoke ", // REVOKE permissions
+      "password " // Password-related operations
     };
 
     for (String kw : ddlKeywords) {
@@ -495,14 +493,10 @@ public class StressExec {
   /**
    * Executes the main stress test workflow.
    *
-   * This method orchestrates the entire stress test execution including:
-   * - Establishing connection to Dremio
-   * - Loading and preparing queries
-   * - Setting up concurrent execution with thread pool
-   * - Starting progress reporting
-   * - Managing query execution (sequential or random)
-   * - Monitoring for completion conditions
-   * - Cleanup and shutdown
+   * <p>This method orchestrates the entire stress test execution including: - Establishing
+   * connection to Dremio - Loading and preparing queries - Setting up concurrent execution with
+   * thread pool - Starting progress reporting - Managing query execution (sequential or random) -
+   * Monitoring for completion conditions - Cleanup and shutdown
    *
    * @return exit code of the process (0 for success, 1 for failure)
    */
@@ -557,8 +551,7 @@ public class StressExec {
                   "finished submitting queries, waiting "
                       + waitTime
                       + "s for latest queries to finish...");
-              Thread.sleep(
-                  waitTime * 1000); // Allow time for executor service shutdown
+              Thread.sleep(waitTime * 1000); // Allow time for executor service shutdown
               continue;
             }
           } else if (queriesSequence == QueriesSequence.RANDOM) {
@@ -601,9 +594,9 @@ public class StressExec {
   }
 
   /**
-   * Starts a background monitoring thread that checks for completion conditions.
-   * The monitor checks every 5 seconds for either time-based or query-count-based completion.
-   * When completion conditions are met, it prints a final summary and shuts down the executor.
+   * Starts a background monitoring thread that checks for completion conditions. The monitor checks
+   * every 5 seconds for either time-based or query-count-based completion. When completion
+   * conditions are met, it prints a final summary and shuts down the executor.
    *
    * @param d Start time of the stress test
    * @param executorService The executor service to shut down when complete
@@ -623,7 +616,8 @@ public class StressExec {
                 final Instant now = Instant.now();
                 long msElapsed = now.toEpochMilli() - d.toEpochMilli();
 
-                // Check completion conditions: time limit reached OR all queries processed (sequential mode)
+                // Check completion conditions: time limit reached OR all queries processed
+                // (sequential mode)
                 if (msElapsed > durationTargetMS || queryIndex.get() + 1 >= numQueries) {
                   final int submitted = submittedCounter.get();
                   final int successful = successfulCounter.get();
@@ -662,8 +656,8 @@ public class StressExec {
   }
 
   /**
-   * Builds a map of query groups from the stress configuration.
-   * Query groups allow organizing related queries together for easier management.
+   * Builds a map of query groups from the stress configuration. Query groups allow organizing
+   * related queries together for easier management.
    *
    * @return Map of query group names to QueryGroup objects
    * @throws InvalidParameterException if duplicate query group names are found
@@ -688,8 +682,8 @@ public class StressExec {
   }
 
   /**
-   * Expands query configurations based on their frequency settings.
-   * Queries with frequency > 1 will be duplicated in the pool to increase their execution probability.
+   * Expands query configurations based on their frequency settings. Queries with frequency > 1 will
+   * be duplicated in the pool to increase their execution probability.
    *
    * @param config The stress configuration containing queries with frequency settings
    * @return List of QueryConfig objects with duplicates based on frequency
@@ -708,13 +702,12 @@ public class StressExec {
   }
 
   /**
-   * Maps a QueryConfig to one or more executable Query objects by processing parameters and sequences.
+   * Maps a QueryConfig to one or more executable Query objects by processing parameters and
+   * sequences.
    *
-   * This method handles:
-   * - Resolving query groups to their constituent queries
-   * - Parameter substitution using random selection from parameter value lists
-   * - Sequence expansion for generating multiple queries with incremental values
-   * - Setting SQL context for query execution
+   * <p>This method handles: - Resolving query groups to their constituent queries - Parameter
+   * substitution using random selection from parameter value lists - Sequence expansion for
+   * generating multiple queries with incremental values - Setting SQL context for query execution
    *
    * @param q The QueryConfig to process
    * @param queryGroupsMap Map of query group names to QueryGroup objects
@@ -749,7 +742,7 @@ public class StressExec {
       if (!parameters.isEmpty()) {
         Matcher matcher = tokenDetector.matcher(queryText);
         while (matcher.find()) {
-          String detectedToken = matcher.group(1);           // e.g., ":param1"
+          String detectedToken = matcher.group(1); // e.g., ":param1"
           String parameterName = detectedToken.substring(1); // e.g., "param1"
           if (parameters.containsKey(parameterName)) {
             List<Object> value = parameters.get(parameterName);
