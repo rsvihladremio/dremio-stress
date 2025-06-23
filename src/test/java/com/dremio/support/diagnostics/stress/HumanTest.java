@@ -1,6 +1,7 @@
+package com.dremio.support.diagnostics.stress;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.dremio.support.diagnostics.stress.Human;
 import org.junit.jupiter.api.Test;
 
 public class HumanTest {
