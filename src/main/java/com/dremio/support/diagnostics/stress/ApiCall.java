@@ -17,8 +17,30 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 
+/**
+ * Interface for making HTTP API calls to Dremio. This abstraction allows for different
+ * implementations of API calling mechanisms, enabling flexibility for testing and future
+ * extensions.
+ */
 public interface ApiCall {
+  /**
+   * Submits a POST request to the specified URL with headers and a body.
+   *
+   * @param url The URL to submit the request to
+   * @param headers Map of HTTP headers to include with the request
+   * @param body The request body to send
+   * @return The HTTP response encapsulated in an HttpApiResponse object
+   * @throws IOException If an I/O error occurs during the request
+   */
   HttpApiResponse submitPost(URL url, Map<String, String> headers, String body) throws IOException;
 
+  /**
+   * Submits a GET request to the specified URL with headers.
+   *
+   * @param url The URL to submit the request to
+   * @param headers Map of HTTP headers to include with the request
+   * @return The HTTP response encapsulated in an HttpApiResponse object
+   * @throws IOException If an I/O error occurs during the request
+   */
   HttpApiResponse submitGet(URL url, Map<String, String> headers) throws IOException;
 }

@@ -15,22 +15,46 @@ package com.dremio.support.diagnostics.stress;
 
 import java.util.Collection;
 
+/**
+ * Represents a single SQL query to be executed by the stress tool. Includes the query text and an
+ * optional context for the query.
+ */
 public class Query {
   private String queryText;
   private Collection<String> context;
 
+  /**
+   * Gets the SQL query text.
+   *
+   * @return the SQL query string.
+   */
   public String getQueryText() {
     return queryText;
   }
 
+  /**
+   * Sets the SQL query text.
+   *
+   * @param queryText the SQL query string to set.
+   */
   public void setQueryText(String queryText) {
     this.queryText = queryText;
   }
 
+  /**
+   * Gets the optional context for the query.
+   *
+   * @return a collection of strings representing the query context.
+   */
   public Collection<String> getContext() {
     return context;
   }
 
+  /**
+   * Sets the optional context for the query.
+   *
+   * @param context a collection of strings representing the query context to set.
+   */
   public void setContext(Collection<String> context) {
     this.context = context;
   }

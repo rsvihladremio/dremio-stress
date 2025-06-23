@@ -15,19 +15,39 @@ package com.dremio.support.diagnostics.stress;
 
 import java.util.logging.Logger;
 
+/**
+ * Implementation of the DremioApi interface using the legacy Dremio JDBC driver. This class
+ * provides connectivity to Dremio via the older JDBC driver.
+ */
 public class DremioLegacyJDBCDriver extends AbstractDremioJDBCDriver {
+  /** Logger for this class. */
   private static final Logger logger = Logger.getLogger(DremioLegacyJDBCDriver.class.getName());
 
+  /**
+   * Returns the fully qualified class name of the legacy Dremio JDBC driver.
+   *
+   * @return The legacy Dremio JDBC driver class name
+   */
   @Override
   protected String getDriverClass() {
     return "com.dremio.jdbc.Driver";
   }
 
+  /**
+   * Returns the logger for this class.
+   *
+   * @return The logger instance
+   */
   @Override
   protected Logger getLogger() {
     return logger;
   }
 
+  /**
+   * Constructs a DremioLegacyJDBCDriver with the specified connection string.
+   *
+   * @param connectionString The JDBC connection URL for connecting to Dremio
+   */
   public DremioLegacyJDBCDriver(final String connectionString) {
     super(connectionString);
   }

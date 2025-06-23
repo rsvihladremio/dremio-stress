@@ -16,23 +16,29 @@ package com.dremio.support.diagnostics.stress;
 import java.io.IOException;
 import java.util.Collection;
 
+/**
+ * Interface defining the operations available on a Dremio API. This interface abstracts the details
+ * of communication with Dremio, allowing for different implementations (REST API, JDBC, etc.) while
+ * providing a consistent interface for client code.
+ */
 public interface DremioApi {
 
   /**
-   * runs a sql statement against the rest API
+   * Runs a SQL statement against the Dremio API.
    *
-   * @param sql sql string to submit to dremio
-   * @param context conext list to use with the query
-   * @return the result of the job
-   * @throws IOException occurs when the underlying apiCall does, typically a problem with handling
-   *     of the body
+   * @param sql SQL string to submit to Dremio
+   * @param table Collection of strings representing the context (schema/table path) to use with the
+   *     query
+   * @return The result of the job execution encapsulated in a DremioApiResponse
+   * @throws IOException Occurs when the underlying API call fails, typically a problem with
+   *     handling of the request or response body
    */
   DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException;
 
   /**
-   * The http URL for the dremio server
+   * Returns the URL used to access the Dremio server.
    *
-   * @return return the url used to access Dremio
+   * @return The URL string used to access Dremio
    */
   String getUrl();
 }

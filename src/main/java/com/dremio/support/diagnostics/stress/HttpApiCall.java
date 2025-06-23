@@ -27,9 +27,17 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
-/** HttpApiCall is the wrapper for HttpUrlConnection logic */
+/**
+ * HttpApiCall is the wrapper for HttpUrlConnection logic. It handles making HTTP/HTTPS requests,
+ * including SSL configuration.
+ */
 public class HttpApiCall implements ApiCall {
 
+  /**
+   * Constructs an HttpApiCall instance.
+   *
+   * @param ignoreSSL if true, SSL certificate validation is skipped.
+   */
   public HttpApiCall(final boolean ignoreSSL) {
     if (ignoreSSL) {
       HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
@@ -62,10 +70,18 @@ public class HttpApiCall implements ApiCall {
     }
   }
 
+  /**
+   * Submits a GET request to the specified URL with headers.
+   *
+   * @param url The URL to submit the request to.
+   * @param headers Map of HTTP headers to include with the request.
+   * @return The HTTP response encapsulated in an HttpApiResponse object.
+   * @throws IOException If an I/O error occurs during the request.
+   */
   @Override
   public HttpApiResponse submitGet(URL url, Map<String, String> headers) throws IOException {
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-    connection.setDoInput(true);
+    connection.setDoInput(true); // Enable input stream for reading response
     connection.setRequestMethod("GET");
     for (Map.Entry<String, String> kvp : headers.entrySet()) {
       connection.setRequestProperty(kvp.getKey(), kvp.getValue());
@@ -105,11 +121,20 @@ public class HttpApiCall implements ApiCall {
     }
   }
 
+  /**
+   * Submits a POST request to the specified URL with headers and an optional body.
+   *
+   * @param url The URL to submit the request to.
+   * @param headers Map of HTTP headers to include with the request.
+   * @param body The request body to send (can be null).
+   * @return The HTTP response encapsulated in an HttpApiResponse object.
+   * @throws IOException If an I/O error occurs during the request.
+   */
   @Override
   public HttpApiResponse submitPost(
       final URL url, final Map<String, String> headers, final String body) throws IOException {
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-    connection.setDoInput(true);
+    connection.setDoInput(true); // Enable input stream for reading response
     connection.setRequestMethod("POST");
     for (Map.Entry<String, String> kvp : headers.entrySet()) {
       connection.setRequestProperty(kvp.getKey(), kvp.getValue());

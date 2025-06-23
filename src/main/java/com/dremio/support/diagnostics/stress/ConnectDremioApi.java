@@ -15,8 +15,24 @@ package com.dremio.support.diagnostics.stress;
 
 import java.io.IOException;
 
+/**
+ * Implementation of the ConnectApi interface for establishing connections to Dremio APIs. This
+ * class provides concrete implementations for connecting to Dremio using different protocols.
+ */
 public class ConnectDremioApi implements ConnectApi {
 
+  /**
+   * Establishes a connection to a Dremio API using the specified parameters.
+   *
+   * @param username The username for authentication
+   * @param password The password for authentication
+   * @param host The host address of the Dremio server
+   * @param timeoutSeconds Connection timeout in seconds
+   * @param protocol The protocol to use for the connection (HTTP, JDBC, or LegacyJDBC)
+   * @param ignoreSSL Whether to ignore SSL certificate validation
+   * @return A DremioApi instance for interacting with the Dremio server
+   * @throws IOException If a connection cannot be established
+   */
   @Override
   public DremioApi connect(
       String username,

@@ -15,21 +15,41 @@ package com.dremio.support.diagnostics.stress;
 
 import java.util.logging.Logger;
 
+/**
+ * Implementation of the DremioApi interface using the Arrow Flight JDBC driver. This class provides
+ * connectivity to Dremio using the high-performance Arrow Flight protocol via JDBC.
+ */
 public class DremioArrowFlightJDBCDriver extends AbstractDremioJDBCDriver {
 
+  /** Logger for this class. */
   private static final Logger logger =
       Logger.getLogger(DremioArrowFlightJDBCDriver.class.getName());
 
+  /**
+   * Returns the fully qualified class name of the Arrow Flight JDBC driver.
+   *
+   * @return The Arrow Flight JDBC driver class name
+   */
   @Override
   protected String getDriverClass() {
     return "org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver";
   }
 
+  /**
+   * Returns the logger for this class.
+   *
+   * @return The logger instance
+   */
   @Override
   protected Logger getLogger() {
     return logger;
   }
 
+  /**
+   * Constructs a DremioArrowFlightJDBCDriver with the specified connection string.
+   *
+   * @param connectionString The JDBC connection URL for connecting to Dremio
+   */
   public DremioArrowFlightJDBCDriver(String connectionString) {
     super(connectionString);
   }

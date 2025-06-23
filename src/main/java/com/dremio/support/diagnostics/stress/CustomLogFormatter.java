@@ -26,10 +26,23 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.stream.Stream;
 
+/**
+ * Custom formatter for log messages in the stress testing tool. This formatter provides detailed
+ * and structured log output including: - Standardized log level names (ERROR, WARN, DEBUG, etc.) -
+ * Thread ID information - Timestamp in ISO 8601 format - Source class and method names - Detailed
+ * exception information including stack traces
+ */
 public class CustomLogFormatter extends Formatter {
 
+  /** Represents an empty logger name. */
   private static final String emptyLogger = "";
 
+  /**
+   * Translates Java logging levels to more standardized logging level names.
+   *
+   * @param loggingLevel The Java logging level
+   * @return A standardized string representation of the logging level
+   */
   String getLogLevel(final Level loggingLevel) {
     if (FINEST.equals(loggingLevel)) {
       return "DIAG";
@@ -46,18 +59,44 @@ public class CustomLogFormatter extends Formatter {
     }
   }
 
+  /**
+   * Formats stack trace elements for consistent display.
+   *
+   * @param element Stream of stack trace elements
+   * @return Stream of formatted stack trace strings
+   */
   private Stream<String> stackTraceString(final Stream<StackTraceElement> element) {
     return element.map(x -> String.format("\tat %s", x));
   }
 
+  /**
+   * Converts a stream of strings to an array.
+   *
+   * @param stream The stream to convert
+   * @return Array of strings
+   */
   private String[] toArray(final Stream<String> stream) {
     return stream.toArray(String[]::new);
   }
 
+  /**
+   * Extracts the message from a throwable.
+   *
+   * @param cause The throwable to extract the message from
+   * @return The message from the throwable
+   */
   private String getMessage(final Throwable cause) {
     return cause.getMessage();
   }
 
+  /**
+   * Formats a log record according to the custom format. The format includes level, logger name,
+   * thread ID, timestamp, class name, method name, and message. For records with exceptions, stack
+   * traces are also included.
+   *
+   * @param record The log record to format
+   * @return The formatted log message
+   */
   @Override
   public String format(final LogRecord record) {
     final String level = getLogLevel(record.getLevel());
