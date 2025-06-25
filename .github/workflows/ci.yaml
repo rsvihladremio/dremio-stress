@@ -16,17 +16,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: 1.21
-    - name: Build, Setup
-      run: |
-            sudo apt -y install wget unixodbc unixodbc-dev odbcinst alien
-            wget https://download.dremio.com/arrow-flight-sql-odbc-driver/arrow-flight-sql-odbc-driver-LATEST.x86_64.rpm 
-            sudo alien --scripts $(ls arrow-flight-sql-odbc-driver*) || true
-            sudo dpkg -i $(ls arrow-flight-sql-odbc-driver*) || true
-
     - name: Verify build
       run: ./script/build
 

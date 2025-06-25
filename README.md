@@ -1,11 +1,11 @@
 # dremio-stress
 
-Simple tool to stress Dremio via JDBC and REST interfaces written for Java 8 (but works with 17) against a queries.json or using a custom workload file (stress.json).
+Simple tool to stress Dremio via JDBC and REST interfaces written for Java 17 against a queries.json or using a custom workload file (stress.json).
 
 ## Run via the REST interface
 
 ```bash
-java -jar dremio-stress.jar -g STRESS_JSON -u dremio  -p dremio123 -l http://localhost:9047 ./stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g STRESS_JSON -u dremio -p dremio123 -l http://host.docker.internal:9047 /mnt/stress.json
 ```
 
 ## Run via JDBC
@@ -17,16 +17,16 @@ java -jar dremio-stress.jar -g STRESS_JSON -u dremio  -p dremio123 -l http://loc
 docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123"  /mnt/queries.json
 ```
 
-### JDBC Directly With a Binary
+### JDBC with Docker
 
 ```bash
-java -jar dremio-stress.jar -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./queries.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio" /mnt/queries.json
 ```
 
 ### Using custom stress.json format with specified workloads
 
 ```bash
-java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio" /mnt/stress.json
 ```
 
 ## Run via Legacy JDBC 
@@ -88,7 +88,7 @@ NOTE: the "schema-ops" group  will be called roughly 10% of the time
 ## Flags
 
 ```bash
-Usage: java -jar dremio-stress.jar [-sv] [-d=<durationSeconds>] [-g=<queriesGeneratorFileType>] [-l=<dremioUrl>] [--limit-results=<limitResults>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<max
+Usage: dremio-stress [-sv] [-d=<durationSeconds>] [-g=<queriesGeneratorFileType>] [-l=<dremioUrl>] [--limit-results=<limitResults>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<max
 QueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>] <jsonConfig> [COMMAND]
 using a defined JSON run a series of queries against dremio using various approaches
       <jsonConfig>        The file to use for query definitions. Supports queries.json.gz, queries.json, or a directory of queries.json and a stress.json file with a defined workload (see example)
@@ -119,14 +119,7 @@ using a defined JSON run a series of queries against dremio using various approa
 * `git clone git@github.com:rsvihladremio/dremio-stress`
 * cd dremio-stress
 
-### How to build a Jar
-NOTE works on Linux, Mac, or WSL2 (Windows without WSL is not currently supported, but it will work in any case just have to run the commands that are run in ./script/build manually)
-
-* Install JDK 8-17
-* run `./script/build`
-* run `java -jar ./target/dremio-stress.jar` you should see the help output
-
-### How to build a Docker image
+### How to build the Docker image
 
 * Install docker desktop or colima or whatever you desire that runs works with a Dockerfile
 * run `docker build -t ghcr.io/rsvihladremio/dremio-stress .`
