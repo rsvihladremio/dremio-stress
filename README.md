@@ -88,21 +88,23 @@ NOTE: the "schema-ops" group  will be called roughly 10% of the time
 ## Flags
 
 ```bash
-Usage: dremio-stress [-sv] [-d=<durationSeconds>] [-g=<queriesGeneratorFileType>] [-l=<dremioUrl>] [--limit-results=<limitResults>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<max
-QueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>] <jsonConfig> [COMMAND]
+Usage: dremio-stress  [-sv] [-d=<durationSeconds>] [-g=<queriesGeneratorFileType>] [-i=<queryIndexForRestart>] [-l=<dremioUrl>] [--limit-results=<limitResults>] [-p=<dremioHttpPassword>] [--protocol=<protocol>] [-q=<maxQueriesInFlight>] [-t=<httpTimeoutSeconds>] [-u=<dremioHttpUser>]
+                                   [-x=<queriesSequence>] <jsonConfig> [COMMAND]
 using a defined JSON run a series of queries against dremio using various approaches
       <jsonConfig>        The file to use for query definitions. Supports queries.json.gz, queries.json, or a directory of queries.json and a stress.json file with a defined workload (see example)
   -d, --duration-seconds=<durationSeconds>
                           duration in seconds to run stress
   -g, --generator-type=<queriesGeneratorFileType>
                           specify QUERIES_JSON or STRESS_JSON to specify the engine type
+  -i, --restart-index=<queryIndexForRestart>
+                          specify query index to restart from (for SEQUENTIAL execution-sequence only)
   -l, --url=<dremioUrl>   JDBC connection string or HTTP url to connect
       --limit-results=<limitResults>
                           limit results to the specified number assuming there is not already a LIMIT in the query. This is an easy way to just add some limits on the result set size
   -p, --http-password=<dremioHttpPassword>
                           the password of the user used to submit HTTP queries
       --protocol=<protocol>
-                          protocol to use HTTP or JDBC
+                          protocol to use HTTP, JDBC or LegacyJDBC
   -q, --max-queries-in-flight=<maxQueriesInFlight>
                           max number of queries in flight (if possible)
   -s, --http-skip-ssl-verification
@@ -112,6 +114,8 @@ using a defined JSON run a series of queries against dremio using various approa
   -u, --http-user=<dremioHttpUser>
                           the user used to submit HTTP queries
   -v, --verbose           -v for info, -vv for debug, -vvv for trace
+  -x, --execution-sequence=<queriesSequence>
+                          specify RANDOM or SEQUENTIAL to specify the execution sequence
 ```
 
 ## Contributing 
