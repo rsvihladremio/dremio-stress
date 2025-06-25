@@ -20,13 +20,13 @@ docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-s
 ### JDBC Directly With a Binary
 
 ```bash
-java -jar dremio-stress.jar -g QUERIES_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./queries.json
+java -jar dremio-stress.jar -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./queries.json
 ```
 
 ### Using custom stress.json format with specified workloads
 
 ```bash
-java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
+java -jar dremio-stress.jar -g STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://localhost:32010/?useEncryption=false&user=dremio&password=dremio" ./stress.json
 ```
 
 ## Run via Legacy JDBC 
