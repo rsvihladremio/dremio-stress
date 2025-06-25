@@ -178,12 +178,15 @@ public class StressExec {
     this.durationTargetMS = durationSeconds * 1000L; // Convert to milliseconds
     this.skipSSLVerification = skipSSLVerification;
     this.reporter = new StressReporter(queryIndex, durationTargetMS);
+    this.stressMonitor =
+        new StressMonitor(durationTargetMS, queryIndex, reporter); // Instantiate the monitor
   }
 
   // Progress reporting
   private final StressReporter reporter;
   private final AtomicInteger queryIndex =
       new AtomicInteger(-1); // Current query index for sequential execution
+  private final StressMonitor stressMonitor; // Add the new monitor field
 
   /**
    * Loads and parses the stress configuration from the JSON file.
@@ -350,7 +353,7 @@ public class StressExec {
       // Parse SQL context (schema/catalog path)
       String context = row.getContext();
       List<String> sqlContext = new ArrayList<>();
-      if (!context.equals("") && !context.equals("[]")) {
+      if (context != null && !context.equals("") && !context.equals("[]")) {
         // TODO: May need additional handling of escaped characters like \"
         context = context.substring(1, context.length() - 1); // Remove square brackets
         sqlContext = Arrays.asList(context.split(",\\s*"));
@@ -439,9 +442,12 @@ public class StressExec {
    * @return exit code of the process (0 for success, 1 for failure)
    */
   public int run() {
-    try {
+    ExecutorService executorService = null; // Declare outside try
+    Instant d = null; // Declare outside try
+
+    try { // Main try block
       // Establish connection to Dremio
-      final DremioApi dremioApi =
+      final DremioApi dremioApi = // Declare and assign here, make final
           this.connectApi.connect(
               dremioUser,
               dremioPassword,
@@ -451,10 +457,11 @@ public class StressExec {
               skipSSLVerification);
 
       // Set up execution infrastructure
-      final BlockingQueue<Runnable> queue =
+      final BlockingQueue<Runnable> queue = // Can be final inside try
           new LinkedBlockingQueue<>(this.maxQueriesInFlight * 1000);
-      final List<QueryConfig> queryPool = getQueries();
-      final Map<String, QueryGroup> queryGroups = getStringQueryGroupMap();
+      final List<QueryConfig> queryPool = getQueries(); // Can be final inside try
+      final Map<String, QueryGroup> queryGroups =
+          getStringQueryGroupMap(); // Can be final inside try
 
       // Initialize query index for sequential execution
       if (queriesSequence == QueriesSequence.SEQUENTIAL) {
@@ -462,118 +469,113 @@ public class StressExec {
       }
 
       // Create thread pool for concurrent query execution
-      final ExecutorService executorService =
+      executorService = // Assign here
           new ThreadPoolExecutor(
               this.maxQueriesInFlight, this.maxQueriesInFlight, 0L, TimeUnit.MILLISECONDS, queue);
 
-      // Start timing and progress reporting
-      final Instant d = Instant.now();
+      // Start timing
+      d = Instant.now(); // Assign here
+
+      // Start progress reporting
       reporter.startReporting(d);
 
-      try {
-        // Start background monitoring for completion conditions
-        monitorForEnd(d, executorService, queryPool.size());
+      // Start background monitoring for completion conditions
+      stressMonitor.startMonitoring(d, executorService, queryPool.size()); // Use the new monitor
 
-        // Main execution loop
-        while (!executorService.isShutdown()) {
-          final int nextQuery;
+      // Main execution loop
+      // This loop continues until the monitor signals the executor to shut down (isTerminated
+      // becomes true).
+      // InterruptedException from Thread.sleep inside the loop will cause the loop to exit and
+      // propagate.
+      while (!executorService.isTerminated()) { // Check if executor is terminated
+        final int nextQuery;
 
-          // Determine next query based on execution sequence
-          if (queriesSequence == QueriesSequence.SEQUENTIAL) {
-            if (queryIndex.get() + 1 < queryPool.size()) {
-              nextQuery = queryIndex.incrementAndGet();
-            } else {
-              // All queries submitted in sequential mode, wait for completion
-              final int waitTime = 10;
-              System.out.println(
-                  "finished submitting queries, waiting "
-                      + waitTime
-                      + "s for latest queries to finish...");
-              Thread.sleep(waitTime * 1000); // Allow time for executor service shutdown
-              continue;
-            }
-          } else if (queriesSequence == QueriesSequence.RANDOM) {
-            nextQuery = random.nextInt(queryPool.size());
+        // Determine next query based on execution sequence
+        if (queriesSequence == QueriesSequence.SEQUENTIAL) {
+          if (queryIndex.get() + 1 < queryPool.size()) {
+            nextQuery = queryIndex.incrementAndGet();
           } else {
-            throw new RuntimeException("unexpected queriesSequence: " + queriesSequence);
+            // All queries submitted in sequential mode, wait for completion
+            final int waitTime = 10;
+            System.out.println(
+                "finished submitting queries, waiting "
+                    + waitTime
+                    + "s for latest queries to finish...");
+            Thread.sleep(waitTime * 1000); // Can throw InterruptedException
+            continue; // Continue checking isTerminated()
           }
+        } else if (queriesSequence == QueriesSequence.RANDOM) {
+          nextQuery = random.nextInt(queryPool.size());
+        } else {
+          throw new RuntimeException("unexpected queriesSequence: " + queriesSequence);
+        }
 
-          // Process the selected query and submit for execution
-          final QueryConfig query = queryPool.get(nextQuery);
-          final List<Query> mappedSqls = mapSql(query, queryGroups);
-          for (final Query mappedSql : mappedSqls) {
-            // Create a runnable task that executes the query asynchronously
-            final Runnable runnable = () -> runQuery(dremioApi, mappedSql);
-            executorService.submit(runnable);
-            reporter.incrementCounter();
-          }
+        // Process the selected query and submit for execution
+        final QueryConfig query = queryPool.get(nextQuery);
+        final List<Query> mappedSqls = mapSql(query, queryGroups);
+        for (final Query mappedSql : mappedSqls) {
+          // Create a runnable task that executes the query asynchronously
+          // Need a final variable for the lambda to capture
+          final Query currentMappedSql = mappedSql;
+          final Runnable runnable = () -> runQuery(dremioApi, currentMappedSql);
+          // submit can throw RejectedExecutionException if executor is shutting down
+          executorService.submit(runnable);
+          reporter.incrementCounter();
+        }
 
-          // Throttle submission if queue becomes too large
-          if (queue.size() > this.maxQueriesInFlight * 10) {
-            logger.fine("pausing as queue is too large");
-            while (queue.size() > this.maxQueriesInFlight * 5) {
-              // Pause to allow queue to drain
-              Thread.sleep(500);
-            }
+        // Throttle submission if queue becomes too large
+        if (queue.size() > this.maxQueriesInFlight * 10) {
+          logger.fine("pausing as queue is too large");
+          while (queue.size() > this.maxQueriesInFlight * 5) {
+            Thread.sleep(500); // Can throw InterruptedException
           }
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } finally {
-        // Clean up resources
-        reporter.stopReporting();
-        executorService.shutdown();
       }
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "unable to connect", e);
+      // Loop finished (either terminated or interrupted)
+
+    } catch (InterruptedException e) {
+      // Handle interruption during the loop or setup before the loop starts
+      // Note: connectApi.connect can throw InterruptedException in some implementations
+      logger.log(Level.SEVERE, "StressExec main thread interrupted during execution or setup", e);
+      Thread.currentThread().interrupt(); // Restore interrupt flag
+      // Return 1 indicates failure
       return 1;
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, "Unable to connect or read config", e);
+      return 1;
+    } catch (RuntimeException e) {
+      logger.log(Level.SEVERE, "An unexpected error occurred during execution", e);
+      return 1;
+    } finally {
+      // Clean up resources regardless of how the try block exited
+      // Ensure executor shutdown if not already terminated (failsafe)
+      // Note: executorService is declared outside the try block now
+      if (executorService != null && !executorService.isTerminated()) {
+        executorService.shutdownNow();
+        try {
+          // Wait a bit for tasks to cancel or finish
+          if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+            logger.warning(
+                "ExecutorService did not terminate within 10 seconds after shutdownNow.");
+          }
+        } catch (InterruptedException e) {
+          logger.log(Level.WARNING, "Interrupted while waiting for executor to terminate.", e);
+          Thread.currentThread().interrupt();
+        }
+      }
+      // Print final summary here, after potential shutdown and wait
+      // Note: d is declared outside the try block now. If d is null, setup failed before
+      // reporting could start.
+      if (d != null) { // Check if 'd' was assigned (implies reporting was started)
+        reporter.printFinalSummary(d); // d should be assigned if this condition is met
+        reporter.stopReporting(); // Ensure reporting stops
+      } else {
+        // If d is null, something failed before even starting the timer and reporter.
+        // The relevant exception should already be logged by the catch blocks.
+        logger.warning("Stress test setup did not complete successfully. Skipping final summary.");
+      }
     }
     return 0;
-  }
-
-  /**
-   * Starts a background monitoring thread that checks for completion conditions. The monitor checks
-   * every 5 seconds for either time-based or query-count-based completion. When completion
-   * conditions are met, it prints a final summary and shuts down the executor.
-   *
-   * @param d Start time of the stress test
-   * @param executorService The executor service to shut down when complete
-   * @param numQueries Total number of queries available for sequential execution
-   */
-  private void monitorForEnd(Instant d, ExecutorService executorService, Integer numQueries) {
-    new Thread(
-            // Background monitoring thread that checks for completion conditions
-            () -> {
-              while (true) {
-                try {
-                  Thread.sleep(5 * 1000); // Check every 5 seconds
-                } catch (InterruptedException e) {
-                  throw new RuntimeException(e);
-                }
-
-                final Instant now = Instant.now();
-                long msElapsed = now.toEpochMilli() - d.toEpochMilli();
-
-                // Check completion conditions: time limit reached OR all queries processed
-                // (sequential mode)
-                if (msElapsed > durationTargetMS || queryIndex.get() + 1 >= numQueries) {
-                  try {
-                    Thread.sleep(5 * 1000); // Allow final queries to complete
-                  } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                  }
-
-                  // Print final summary report
-                  reporter.printFinalSummary(d);
-
-                  // Force shutdown of executor service
-                  executorService.shutdownNow();
-                  break;
-                }
-              }
-            },
-            "monitoring-thread") // Named thread for easier debugging
-        .start();
   }
 
   /**
