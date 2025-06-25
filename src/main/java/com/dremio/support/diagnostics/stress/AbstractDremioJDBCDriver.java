@@ -130,8 +130,15 @@ public abstract class AbstractDremioJDBCDriver implements DremioApi {
           response.setSuccessful(true);
           return response;
         } catch (SQLException ex) {
-          throw new RuntimeException(
-              "Failed to set context or execute SQL: " + ex.getMessage(), ex);
+          getLogger()
+              .warning(
+                  () ->
+                      String.format(
+                          "Failed to set context or execute SQL '%s': %s", sql, ex.getMessage()));
+          final DremioApiResponse response = new DremioApiResponse();
+          response.setSuccessful(false);
+          response.setErrorMessage("Failed to set context or execute SQL: " + ex.getMessage());
+          return response;
         }
       }
     }
@@ -151,7 +158,12 @@ public abstract class AbstractDremioJDBCDriver implements DremioApi {
       response.setSuccessful(true);
       return response;
     } catch (SQLException e) {
-      throw new RuntimeException("Failed to execute SQL: " + e.getMessage(), e);
+      getLogger()
+          .warning(() -> String.format("Failed to execute SQL '%s': %s", sql, e.getMessage()));
+      final DremioApiResponse response = new DremioApiResponse();
+      response.setSuccessful(false);
+      response.setErrorMessage("Failed to execute SQL: " + e.getMessage());
+      return response;
     }
   }
 

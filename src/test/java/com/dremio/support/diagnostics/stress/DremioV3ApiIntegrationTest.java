@@ -53,9 +53,7 @@ public class DremioV3ApiIntegrationTest {
         .withClasspathResourceMapping(
             "dremio.conf", "/opt/dremio/conf/dremio.conf", BindMode.READ_ONLY)
         .waitingFor(
-            Wait.forHttp("/")
-                .forPort(DREMIO_PORT)
-                .withStartupTimeout(Duration.ofMinutes(5)))
+            Wait.forHttp("/").forPort(DREMIO_PORT).withStartupTimeout(Duration.ofMinutes(5)))
         .withStartupTimeout(Duration.ofMinutes(5));
   }
 
@@ -199,8 +197,6 @@ public class DremioV3ApiIntegrationTest {
     assertNull(response.getErrorMessage(), "Error message should be null for successful query");
   }
 
-
-
   @Test
   public void testRunQueryWithLongExecution() throws IOException {
     // This query should take some time but complete within our timeout
@@ -238,8 +234,6 @@ public class DremioV3ApiIntegrationTest {
     assertTrue(response.isSuccessful(), "Query with special characters should be successful");
     assertNull(response.getErrorMessage(), "Error message should be null for successful query");
   }
-
-
 
   @Test
   public void testAuthenticationFlow() throws IOException {
