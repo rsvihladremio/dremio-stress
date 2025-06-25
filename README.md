@@ -20,13 +20,13 @@ docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-s
 ### JDBC with Docker
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio" /mnt/queries.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g QUERIES_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123" /mnt/queries.json
 ```
 
 ### Using custom stress.json format with specified workloads
 
 ```bash
-docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio" /mnt/stress.json
+docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-stress -g STRESS_JSON --protocol JDBC -l "jdbc:arrow-flight-sql://host.docker.internal:32010/?useEncryption=false&user=dremio&password=dremio123" /mnt/stress.json
 ```
 
 ## Run via Legacy JDBC 
