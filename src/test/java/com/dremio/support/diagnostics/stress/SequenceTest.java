@@ -13,9 +13,9 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for the {@link Sequence} class. */
 public class SequenceTest {
@@ -24,10 +24,10 @@ public class SequenceTest {
   @Test
   public void testDefaultState() {
     Sequence sequence = new Sequence();
-    assertNull("getName should return null by default", sequence.getName());
-    assertEquals("getStart should return 0 by default", 0, sequence.getStart());
-    assertEquals("getEnd should return 0 by default", 0, sequence.getEnd());
-    assertEquals("getStep should return 0 by default", 0, sequence.getStep());
+    assertNull(sequence.getName(), "getName should return null by default");
+    assertEquals(0, sequence.getStart(), "getStart should return 0 by default");
+    assertEquals(0, sequence.getEnd(), "getEnd should return 0 by default");
+    assertEquals(0, sequence.getStep(), "getStep should return 0 by default");
   }
 
   /** Tests the getter and setter methods for all fields. */
@@ -48,14 +48,14 @@ public class SequenceTest {
 
     // Verify values using getters
     assertEquals(
-        "setName should set and getName should return the correct value", name, sequence.getName());
+        name, sequence.getName(), "setName should set and getName should return the correct value");
     assertEquals(
-        "setStart should set and getStart should return the correct value",
         start,
-        sequence.getStart());
+        sequence.getStart(),
+        "setStart should set and getStart should return the correct value");
     assertEquals(
-        "setEnd should set and getEnd should return the correct value", end, sequence.getEnd());
+        end, sequence.getEnd(), "setEnd should set and getEnd should return the correct value");
     assertEquals(
-        "setStep should set and getStep should return the correct value", step, sequence.getStep());
+        step, sequence.getStep(), "setStep should set and getStep should return the correct value");
   }
 }

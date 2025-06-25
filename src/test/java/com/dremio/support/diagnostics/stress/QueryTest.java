@@ -13,22 +13,22 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class QueryTest {
 
   @Test
   public void testDefaultState() {
     Query query = new Query();
-    assertNull("Query text should be null by default", query.getQueryText());
-    assertNull("Context should be null by default", query.getContext());
+    assertNull(query.getQueryText(), "Query text should be null by default");
+    assertNull(query.getContext(), "Context should be null by default");
   }
 
   @Test
@@ -38,24 +38,24 @@ public class QueryTest {
     // Test query text
     String queryText = "SELECT 1";
     query.setQueryText(queryText);
-    assertEquals("Query text should match the set value", queryText, query.getQueryText());
-    assertSame("Query text reference should be the same", queryText, query.getQueryText());
+    assertEquals(queryText, query.getQueryText(), "Query text should match the set value");
+    assertSame(queryText, query.getQueryText(), "Query text reference should be the same");
 
     // Test context
     Collection<String> context = Arrays.asList("schema1", "schema2");
     query.setContext(context);
-    assertSame("Context collection reference should be the same", context, query.getContext());
-    assertEquals("Context collection size should match", context.size(), query.getContext().size());
-    assertEquals("Context collection content should match", context, query.getContext());
+    assertSame(context, query.getContext(), "Context collection reference should be the same");
+    assertEquals(context.size(), query.getContext().size(), "Context collection size should match");
+    assertEquals(context, query.getContext(), "Context collection content should match");
 
     // Test setting context to null
     query.setContext(null);
-    assertNull("Context should be null after setting to null", query.getContext());
+    assertNull(query.getContext(), "Context should be null after setting to null");
 
     // Test setting empty context
     Collection<String> emptyContext = Collections.emptyList();
     query.setContext(emptyContext);
-    assertSame("Empty context reference should be the same", emptyContext, query.getContext());
-    assertEquals("Empty context collection size should be 0", 0, query.getContext().size());
+    assertSame(emptyContext, query.getContext(), "Empty context reference should be the same");
+    assertEquals(0, query.getContext().size(), "Empty context collection size should be 0");
   }
 }

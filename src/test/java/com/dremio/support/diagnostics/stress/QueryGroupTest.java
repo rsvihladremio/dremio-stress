@@ -13,11 +13,11 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for the {@link QueryGroup} class. */
 public class QueryGroupTest {
@@ -26,8 +26,8 @@ public class QueryGroupTest {
   @Test
   public void testDefaultState() {
     QueryGroup queryGroup = new QueryGroup();
-    assertNull("getName should return null by default", queryGroup.getName());
-    assertNull("getQueries should return null by default", queryGroup.getQueries());
+    assertNull(queryGroup.getName(), "getName should return null by default");
+    assertNull(queryGroup.getQueries(), "getQueries should return null by default");
   }
 
   /** Tests the getter and setter methods for all fields. */
@@ -46,14 +46,14 @@ public class QueryGroupTest {
 
     // Verify values using getters
     assertEquals(
-        "setName should set and getName should return the correct value",
         name,
-        queryGroup.getName());
+        queryGroup.getName(),
+        "setName should set and getName should return the correct value");
     assertSame(
-        "setQueries should set and getQueries should return the same list instance",
         queries,
-        queryGroup.getQueries());
+        queryGroup.getQueries(),
+        "setQueries should set and getQueries should return the same list instance");
     assertEquals(
-        "getQueries list size should match the set list size", 2, queryGroup.getQueries().size());
+        2, queryGroup.getQueries().size(), "getQueries list size should match the set list size");
   }
 }

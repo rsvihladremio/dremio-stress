@@ -13,23 +13,23 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class UsernamePasswordAuthTest {
 
   @Test
   public void testGetters() {
     UsernamePasswordAuth auth = new UsernamePasswordAuth("alice", "secret");
-    assertEquals("getUsername should return the correct username", "alice", auth.getUsername());
-    assertEquals("getPassword should return the correct password", "secret", auth.getPassword());
+    assertEquals("alice", auth.getUsername(), "getUsername should return the correct username");
+    assertEquals("secret", auth.getPassword(), "getPassword should return the correct password");
   }
 
   @Test
   public void testToString() {
     UsernamePasswordAuth auth = new UsernamePasswordAuth("bob", "hunter2");
     String expectedJson = "{\"userName\":\"bob\",\"password\":\"hunter2\"}";
-    assertEquals("toString should return the correct JSON string", expectedJson, auth.toString());
+    assertEquals(expectedJson, auth.toString(), "toString should return the correct JSON string");
   }
 }

@@ -13,23 +13,23 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class HttpApiResponseTest {
 
   @Test
   public void testDefaultState() {
     HttpApiResponse response = new HttpApiResponse();
-    assertEquals("Response code should be 0 by default", 0, response.getResponseCode());
-    assertNull("Message should be null by default", response.getMessage());
-    assertNull("Response map should be null by default", response.getResponse());
+    assertEquals(0, response.getResponseCode(), "Response code should be 0 by default");
+    assertNull(response.getMessage(), "Message should be null by default");
+    assertNull(response.getResponse(), "Response map should be null by default");
   }
 
   @Test
@@ -38,20 +38,20 @@ public class HttpApiResponseTest {
 
     // Test setting and getting various response codes
     response.setResponseCode(200);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
 
     response.setResponseCode(404);
-    assertEquals("Response code should be 404", 404, response.getResponseCode());
+    assertEquals(404, response.getResponseCode(), "Response code should be 404");
 
     response.setResponseCode(500);
-    assertEquals("Response code should be 500", 500, response.getResponseCode());
+    assertEquals(500, response.getResponseCode(), "Response code should be 500");
 
     // Test edge cases
     response.setResponseCode(0);
-    assertEquals("Response code should be 0", 0, response.getResponseCode());
+    assertEquals(0, response.getResponseCode(), "Response code should be 0");
 
     response.setResponseCode(-1);
-    assertEquals("Response code should be -1", -1, response.getResponseCode());
+    assertEquals(-1, response.getResponseCode(), "Response code should be -1");
   }
 
   @Test
@@ -61,23 +61,23 @@ public class HttpApiResponseTest {
     // Test setting and getting message
     String message = "Success";
     response.setMessage(message);
-    assertEquals("Message should match the set value", message, response.getMessage());
-    assertSame("Message reference should be the same", message, response.getMessage());
+    assertEquals(message, response.getMessage(), "Message should match the set value");
+    assertSame(message, response.getMessage(), "Message reference should be the same");
 
     // Test setting empty message
     String emptyMessage = "";
     response.setMessage(emptyMessage);
-    assertEquals("Empty message should be preserved", emptyMessage, response.getMessage());
+    assertEquals(emptyMessage, response.getMessage(), "Empty message should be preserved");
 
     // Test setting null message
     response.setMessage(null);
-    assertNull("Message should be null after setting to null", response.getMessage());
+    assertNull(response.getMessage(), "Message should be null after setting to null");
 
     // Test setting message with special characters
     String specialMessage = "Error: Invalid request with special chars: !@#$%^&*()";
     response.setMessage(specialMessage);
     assertEquals(
-        "Special character message should be preserved", specialMessage, response.getMessage());
+        specialMessage, response.getMessage(), "Special character message should be preserved");
   }
 
   @Test
@@ -91,25 +91,25 @@ public class HttpApiResponseTest {
     responseMap.put("count", 42);
 
     response.setResponse(responseMap);
-    assertSame("Response map reference should be the same", responseMap, response.getResponse());
+    assertSame(responseMap, response.getResponse(), "Response map reference should be the same");
     assertEquals(
-        "Response map size should match", responseMap.size(), response.getResponse().size());
-    assertEquals("Response map content should match", responseMap, response.getResponse());
+        responseMap.size(), response.getResponse().size(), "Response map size should match");
+    assertEquals(responseMap, response.getResponse(), "Response map content should match");
 
     // Test individual map values
-    assertEquals("Status value should match", "success", response.getResponse().get("status"));
-    assertEquals("Data value should match", "test data", response.getResponse().get("data"));
-    assertEquals("Count value should match", 42, response.getResponse().get("count"));
+    assertEquals("success", response.getResponse().get("status"), "Status value should match");
+    assertEquals("test data", response.getResponse().get("data"), "Data value should match");
+    assertEquals(42, response.getResponse().get("count"), "Count value should match");
 
     // Test setting empty map
     Map<String, Object> emptyMap = new HashMap<>();
     response.setResponse(emptyMap);
-    assertSame("Empty map reference should be the same", emptyMap, response.getResponse());
-    assertEquals("Empty map size should be 0", 0, response.getResponse().size());
+    assertSame(emptyMap, response.getResponse(), "Empty map reference should be the same");
+    assertEquals(0, response.getResponse().size(), "Empty map size should be 0");
 
     // Test setting null map
     response.setResponse(null);
-    assertNull("Response map should be null after setting to null", response.getResponse());
+    assertNull(response.getResponse(), "Response map should be null after setting to null");
   }
 
   @Test
@@ -128,9 +128,9 @@ public class HttpApiResponseTest {
     response.setResponse(responseMap);
 
     // Verify all properties are set correctly
-    assertEquals("Response code should match", responseCode, response.getResponseCode());
-    assertEquals("Message should match", message, response.getMessage());
-    assertSame("Response map should match", responseMap, response.getResponse());
+    assertEquals(responseCode, response.getResponseCode(), "Response code should match");
+    assertEquals(message, response.getMessage(), "Message should match");
+    assertSame(responseMap, response.getResponse(), "Response map should match");
   }
 
   @Test
@@ -139,10 +139,10 @@ public class HttpApiResponseTest {
 
     // Test toString with default values
     String defaultToString = response.toString();
-    assertTrue("toString should contain class name", defaultToString.contains("HttpApiResponse"));
-    assertTrue("toString should contain responseCode", defaultToString.contains("responseCode=0"));
-    assertTrue("toString should contain message", defaultToString.contains("message='null'"));
-    assertTrue("toString should contain response", defaultToString.contains("response=null"));
+    assertTrue(defaultToString.contains("HttpApiResponse"), "toString should contain class name");
+    assertTrue(defaultToString.contains("responseCode=0"), "toString should contain responseCode");
+    assertTrue(defaultToString.contains("message='null'"), "toString should contain message");
+    assertTrue(defaultToString.contains("response=null"), "toString should contain response");
 
     // Test toString with all values set
     response.setResponseCode(200);
@@ -153,10 +153,10 @@ public class HttpApiResponseTest {
 
     String fullToString = response.toString();
     assertTrue(
-        "toString should contain responseCode=200", fullToString.contains("responseCode=200"));
-    assertTrue("toString should contain message='OK'", fullToString.contains("message='OK'"));
+        fullToString.contains("responseCode=200"), "toString should contain responseCode=200");
+    assertTrue(fullToString.contains("message='OK'"), "toString should contain message='OK'");
     assertTrue(
-        "toString should contain response map", fullToString.contains("response={result=success}"));
+        fullToString.contains("response={result=success}"), "toString should contain response map");
   }
 
   @Test
@@ -171,11 +171,11 @@ public class HttpApiResponseTest {
 
     String toStringResult = response.toString();
     assertTrue(
-        "toString should handle special characters in message",
-        toStringResult.contains("Error: 'Invalid' \"request\""));
+        toStringResult.contains("Error: 'Invalid' \"request\""),
+        "toString should handle special characters in message");
     assertTrue(
-        "toString should handle special characters in response map",
-        toStringResult.contains("Bad request with 'quotes' and \"double quotes\""));
+        toStringResult.contains("Bad request with 'quotes' and \"double quotes\""),
+        "toString should handle special characters in response map");
   }
 
   @Test
@@ -196,16 +196,16 @@ public class HttpApiResponseTest {
     response.setResponse(responseMap);
 
     // Verify complex objects are preserved
-    assertEquals("String value should be preserved", "test", response.getResponse().get("string"));
-    assertEquals("Integer value should be preserved", 123, response.getResponse().get("integer"));
-    assertEquals("Boolean value should be preserved", true, response.getResponse().get("boolean"));
-    assertNull("Null value should be preserved", response.getResponse().get("null_value"));
+    assertEquals("test", response.getResponse().get("string"), "String value should be preserved");
+    assertEquals(123, response.getResponse().get("integer"), "Integer value should be preserved");
+    assertEquals(true, response.getResponse().get("boolean"), "Boolean value should be preserved");
+    assertNull(response.getResponse().get("null_value"), "Null value should be preserved");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> retrievedNestedMap =
         (Map<String, Object>) response.getResponse().get("nested");
-    assertEquals("Nested map should be preserved", nestedMap, retrievedNestedMap);
+    assertEquals(nestedMap, retrievedNestedMap, "Nested map should be preserved");
     assertEquals(
-        "Nested value should be accessible", "nested_value", retrievedNestedMap.get("nested_key"));
+        "nested_value", retrievedNestedMap.get("nested_key"), "Nested value should be accessible");
   }
 }

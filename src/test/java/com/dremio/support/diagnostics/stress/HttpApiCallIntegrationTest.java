@@ -13,7 +13,7 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -27,9 +27,9 @@ import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Integration tests for HttpApiCall using a real HTTP server. These tests verify the complete HTTP
@@ -41,7 +41,7 @@ public class HttpApiCallIntegrationTest {
   private int serverPort;
   private String baseUrl;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     // Create Jetty server
     server = new Server();
@@ -74,7 +74,7 @@ public class HttpApiCallIntegrationTest {
     System.out.println("Test HTTP server started on port: " + serverPort);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (server != null) {
       server.stop();
@@ -216,13 +216,13 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
-    assertEquals("Response message should be OK", "OK", response.getMessage());
-    assertNotNull("Response body should not be null", response.getResponse());
-    assertEquals("Status should be success", "success", response.getResponse().get("status"));
-    assertEquals("Data should match", "test data", response.getResponse().get("data"));
-    assertEquals("Timestamp should match", 1234567890, response.getResponse().get("timestamp"));
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
+    assertEquals("OK", response.getMessage(), "Response message should be OK");
+    assertNotNull(response.getResponse(), "Response body should not be null");
+    assertEquals("success", response.getResponse().get("status"), "Status should be success");
+    assertEquals("test data", response.getResponse().get("data"), "Data should match");
+    assertEquals(1234567890, response.getResponse().get("timestamp"), "Timestamp should match");
   }
 
   @Test
@@ -233,11 +233,11 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
-    assertNotNull("Response body should not be null", response.getResponse());
-    assertEquals("Total should be 2", 2, response.getResponse().get("total"));
-    assertNotNull("Users array should exist", response.getResponse().get("users"));
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
+    assertNotNull(response.getResponse(), "Response body should not be null");
+    assertEquals(2, response.getResponse().get("total"), "Total should be 2");
+    assertNotNull(response.getResponse().get("users"), "Users array should exist");
   }
 
   @Test
@@ -250,19 +250,19 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> receivedHeaders =
         (Map<String, Object>) response.getResponse().get("received_headers");
-    assertNotNull("Received headers should not be null", receivedHeaders);
+    assertNotNull(receivedHeaders, "Received headers should not be null");
     assertEquals(
-        "User-Agent should match", "HttpApiCall-Test/1.0", receivedHeaders.get("user_agent"));
+        "HttpApiCall-Test/1.0", receivedHeaders.get("user_agent"), "User-Agent should match");
     assertEquals(
-        "Authorization should match",
         "Bearer test-token-123",
-        receivedHeaders.get("authorization"));
+        receivedHeaders.get("authorization"),
+        "Authorization should match");
   }
 
   @Test
@@ -275,12 +275,12 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitPost(url, headers, requestBody);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 201", 201, response.getResponseCode());
-    assertEquals("Response message should be Created", "Created", response.getMessage());
-    assertNotNull("Response body should not be null", response.getResponse());
-    assertEquals("Status should be created", "created", response.getResponse().get("status"));
-    assertEquals("ID should be set", 12345, response.getResponse().get("id"));
+    assertNotNull(response, "Response should not be null");
+    assertEquals(201, response.getResponseCode(), "Response code should be 201");
+    assertEquals("Created", response.getMessage(), "Response message should be Created");
+    assertNotNull(response.getResponse(), "Response body should not be null");
+    assertEquals("created", response.getResponse().get("status"), "Status should be created");
+    assertEquals(12345, response.getResponse().get("id"), "ID should be set");
   }
 
   @Test
@@ -291,10 +291,10 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitPost(url, headers, null);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 201", 201, response.getResponseCode());
-    assertNotNull("Response body should not be null", response.getResponse());
-    assertEquals("Status should be created", "created", response.getResponse().get("status"));
+    assertNotNull(response, "Response should not be null");
+    assertEquals(201, response.getResponseCode(), "Response code should be 201");
+    assertNotNull(response.getResponse(), "Response body should not be null");
+    assertEquals("created", response.getResponse().get("status"), "Status should be created");
   }
 
   @Test
@@ -305,9 +305,9 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitPost(url, headers, "");
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 201", 201, response.getResponseCode());
-    assertNotNull("Response body should not be null", response.getResponse());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(201, response.getResponseCode(), "Response code should be 201");
+    assertNotNull(response.getResponse(), "Response body should not be null");
   }
 
   @Test
@@ -320,13 +320,13 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitPost(url, headers, requestBody);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> echo = (Map<String, Object>) response.getResponse().get("echo");
-    assertNotNull("Echo should not be null", echo);
-    assertEquals("Content type should match", "application/json", echo.get("content_type"));
+    assertNotNull(echo, "Echo should not be null");
+    assertEquals("application/json", echo.get("content_type"), "Content type should match");
   }
 
   // Error handling tests
@@ -339,13 +339,13 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 404", 404, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(404, response.getResponseCode(), "Response code should be 404");
     assertTrue(
-        "Response message should contain Not Found", response.getMessage().contains("Not Found"));
+        response.getMessage().contains("Not Found"), "Response message should contain Not Found");
     assertTrue(
-        "Response message should contain error details",
-        response.getMessage().contains("Resource not found"));
+        response.getMessage().contains("Resource not found"),
+        "Response message should contain error details");
   }
 
   @Test
@@ -356,17 +356,17 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 500", 500, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(500, response.getResponseCode(), "Response code should be 500");
 
     // The response message should contain the HTTP status message and error details
-    assertNotNull("Response message should not be null", response.getMessage());
+    assertNotNull(response.getMessage(), "Response message should not be null");
     assertTrue(
-        "Response message should contain Server Error",
-        response.getMessage().contains("Server Error"));
+        response.getMessage().contains("Server Error"),
+        "Response message should contain Server Error");
     assertTrue(
-        "Response message should contain error details",
-        response.getMessage().contains("Internal server error"));
+        response.getMessage().contains("Internal server error"),
+        "Response message should contain error details");
   }
 
   @Test
@@ -377,14 +377,14 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 400", 400, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(400, response.getResponseCode(), "Response code should be 400");
     assertTrue(
-        "Response message should contain Bad Request",
-        response.getMessage().contains("Bad Request"));
+        response.getMessage().contains("Bad Request"),
+        "Response message should contain Bad Request");
     assertTrue(
-        "Response message should contain error details",
-        response.getMessage().contains("Bad request"));
+        response.getMessage().contains("Bad request"),
+        "Response message should contain error details");
   }
 
   @Test
@@ -395,14 +395,14 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 401", 401, response.getResponseCode());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(401, response.getResponseCode(), "Response code should be 401");
     assertTrue(
-        "Response message should contain Unauthorized",
-        response.getMessage().contains("Unauthorized"));
+        response.getMessage().contains("Unauthorized"),
+        "Response message should contain Unauthorized");
     assertTrue(
-        "Response message should contain error details",
-        response.getMessage().contains("Unauthorized"));
+        response.getMessage().contains("Unauthorized"),
+        "Response message should contain error details");
   }
 
   @Test
@@ -413,10 +413,10 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitGet(url, headers);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
-    assertNotNull("Response body should not be null", response.getResponse());
-    assertEquals("Status should be success", "success", response.getResponse().get("status"));
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
+    assertNotNull(response.getResponse(), "Response body should not be null");
+    assertEquals("success", response.getResponse().get("status"), "Status should be success");
   }
 
   @Test
@@ -432,13 +432,13 @@ public class HttpApiCallIntegrationTest {
 
     HttpApiResponse response = apiCall.submitPost(url, headers, requestBody);
 
-    assertNotNull("Response should not be null", response);
-    assertEquals("Response code should be 200", 200, response.getResponseCode());
-    assertNotNull("Response body should not be null", response.getResponse());
+    assertNotNull(response, "Response should not be null");
+    assertEquals(200, response.getResponseCode(), "Response code should be 200");
+    assertNotNull(response.getResponse(), "Response body should not be null");
 
     @SuppressWarnings("unchecked")
     Map<String, Object> echo = (Map<String, Object>) response.getResponse().get("echo");
-    assertNotNull("Echo should not be null", echo);
-    assertEquals("Content type should match", "application/json", echo.get("content_type"));
+    assertNotNull(echo, "Echo should not be null");
+    assertEquals("application/json", echo.get("content_type"), "Content type should match");
   }
 }

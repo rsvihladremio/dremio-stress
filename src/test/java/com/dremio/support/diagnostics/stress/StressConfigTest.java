@@ -13,11 +13,11 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for the {@link StressConfig} class. */
 public class StressConfigTest {
@@ -26,8 +26,8 @@ public class StressConfigTest {
   @Test
   public void testDefaultState() {
     StressConfig config = new StressConfig();
-    assertNull("getQueries should return null by default", config.getQueries());
-    assertNull("getQueryGroups should return null by default", config.getQueryGroups());
+    assertNull(config.getQueries(), "getQueries should return null by default");
+    assertNull(config.getQueryGroups(), "getQueryGroups should return null by default");
   }
 
   /** Tests the getter and setter methods for queries and query groups. */
@@ -49,20 +49,20 @@ public class StressConfigTest {
 
     // Verify using assertSame to check if the exact list references are returned
     assertSame(
-        "setQueries should set and getQueries should return the same list instance",
         queries,
-        config.getQueries());
+        config.getQueries(),
+        "setQueries should set and getQueries should return the same list instance");
     assertSame(
-        "setQueryGroups should set and getQueryGroups should return the same list instance",
         queryGroups,
-        config.getQueryGroups());
+        config.getQueryGroups(),
+        "setQueryGroups should set and getQueryGroups should return the same list instance");
 
     // Also verify content/size using assertEquals for double-check
     assertEquals(
-        "getQueries list size should match the set list size", 2, config.getQueries().size());
+        2, config.getQueries().size(), "getQueries list size should match the set list size");
     assertEquals(
-        "getQueryGroups list size should match the set list size",
         1,
-        config.getQueryGroups().size());
+        config.getQueryGroups().size(),
+        "getQueryGroups list size should match the set list size");
   }
 }

@@ -13,9 +13,9 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for the {@link QueryJsonRow} class. */
 public class QueryJsonRowTest {
@@ -24,11 +24,11 @@ public class QueryJsonRowTest {
   @Test
   public void testDefaultState() {
     QueryJsonRow row = new QueryJsonRow();
-    assertNull("getQueryText should return null by default", row.getQueryText());
-    assertNull("getOutcome should return null by default", row.getOutcome());
-    assertNull("getContext should return null by default", row.getContext());
-    assertNull("getUsername should return null by default", row.getUsername());
-    assertNull("getQueryId should return null by default", row.getQueryId());
+    assertNull(row.getQueryText(), "getQueryText should return null by default");
+    assertNull(row.getOutcome(), "getOutcome should return null by default");
+    assertNull(row.getContext(), "getContext should return null by default");
+    assertNull(row.getUsername(), "getUsername should return null by default");
+    assertNull(row.getQueryId(), "getQueryId should return null by default");
   }
 
   /** Tests the getter and setter methods for all fields. */
@@ -51,24 +51,24 @@ public class QueryJsonRowTest {
 
     // Verify values using getters
     assertEquals(
-        "setQueryText should set and getQueryText should return the correct value",
         queryText,
-        row.getQueryText());
+        row.getQueryText(),
+        "setQueryText should set and getQueryText should return the correct value");
     assertEquals(
-        "setOutcome should set and getOutcome should return the correct value",
         outcome,
-        row.getOutcome());
+        row.getOutcome(),
+        "setOutcome should set and getOutcome should return the correct value");
     assertEquals(
-        "setContext should set and getContext should return the correct value",
         context,
-        row.getContext());
+        row.getContext(),
+        "setContext should set and getContext should return the correct value");
     assertEquals(
-        "setUsername should set and getUsername should return the correct value",
         username,
-        row.getUsername());
+        row.getUsername(),
+        "setUsername should set and getUsername should return the correct value");
     assertEquals(
-        "setQueryId should set and getQueryId should return the correct value",
         queryId,
-        row.getQueryId());
+        row.getQueryId(),
+        "setQueryId should set and getQueryId should return the correct value");
   }
 }

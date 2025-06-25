@@ -13,7 +13,7 @@
  */
 package com.dremio.support.diagnostics.stress;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for the {@link QueryConfig} class. */
 public class QueryConfigTest {
@@ -30,12 +30,12 @@ public class QueryConfigTest {
   @Test
   public void testDefaultState() {
     QueryConfig config = new QueryConfig();
-    assertNull("getQuery should return null by default", config.getQuery());
-    assertNull("getQueryGroup should return null by default", config.getQueryGroup());
-    assertEquals("getFrequency should return 0 by default", 0, config.getFrequency());
-    assertNull("getParameters should return null by default", config.getParameters());
-    assertNull("getSequence should return null by default", config.getSequence());
-    assertNull("getSqlContext should return null by default", config.getSqlContext());
+    assertNull(config.getQuery(), "getQuery should return null by default");
+    assertNull(config.getQueryGroup(), "getQueryGroup should return null by default");
+    assertEquals(0, config.getFrequency(), "getFrequency should return 0 by default");
+    assertNull(config.getParameters(), "getParameters should return null by default");
+    assertNull(config.getSequence(), "getSequence should return null by default");
+    assertNull(config.getSqlContext(), "getSqlContext should return null by default");
   }
 
   /** Tests the getter and setter methods for all fields. */
@@ -67,28 +67,28 @@ public class QueryConfigTest {
 
     // Verify values using getters
     assertEquals(
-        "setQuery should set and getQuery should return the correct value",
         query,
-        config.getQuery());
+        config.getQuery(),
+        "setQuery should set and getQuery should return the correct value");
     assertEquals(
-        "setQueryGroup should set and getQueryGroup should return the correct value",
         queryGroup,
-        config.getQueryGroup());
+        config.getQueryGroup(),
+        "setQueryGroup should set and getQueryGroup should return the correct value");
     assertEquals(
-        "setFrequency should set and getFrequency should return the correct value",
         frequency,
-        config.getFrequency());
+        config.getFrequency(),
+        "setFrequency should set and getFrequency should return the correct value");
     assertSame(
-        "setParameters should set and getParameters should return the same map instance",
         parameters,
-        config.getParameters());
+        config.getParameters(),
+        "setParameters should set and getParameters should return the same map instance");
     assertSame(
-        "setSequence should set and getSequence should return the same sequence instance",
         sequence,
-        config.getSequence());
+        config.getSequence(),
+        "setSequence should set and getSequence should return the same sequence instance");
     assertSame(
-        "setSqlContext should set and getSqlContext should return the same list instance",
         sqlContext,
-        config.getSqlContext());
+        config.getSqlContext(),
+        "setSqlContext should set and getSqlContext should return the same list instance");
   }
 }
