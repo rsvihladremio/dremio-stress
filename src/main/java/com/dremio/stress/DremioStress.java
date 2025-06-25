@@ -27,7 +27,7 @@ import java.util.logging.*;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-    name = "java -jar dremio-stress.jar",
+    name = "dremio-stress",
     description =
         "using a defined JSON run a series of queries against dremio using various approaches",
     footer =
