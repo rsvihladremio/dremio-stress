@@ -29,7 +29,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -178,73 +177,13 @@ public class StressExec {
     this.timeoutSeconds = timeoutSeconds;
     this.durationTargetMS = durationSeconds * 1000L; // Convert to milliseconds
     this.skipSSLVerification = skipSSLVerification;
+    this.reporter = new StressReporter(queryIndex, durationTargetMS);
   }
 
-  // Metrics and tracking fields
-  private final AtomicInteger counter = new AtomicInteger(0); // Total queries processed
-  private final AtomicInteger submittedCounter = new AtomicInteger(0); // Total queries submitted
-  private final AtomicInteger failureCounter = new AtomicInteger(0); // Total failed queries
-  private final AtomicInteger successfulCounter = new AtomicInteger(0); // Total successful queries
-  private final AtomicLong totalDurationMS = new AtomicLong(0); // Total execution time
-
-  // Progress reporting fields
-  private final Timer timer = new Timer(); // Timer for periodic reporting
-  long durationLastRun = 0; // Duration at last report
-  long successfulLastRun = 0; // Successful queries at last report
-  int failuresLastRun = 0; // Failed queries at last report
-  int submittedLastRun = 0; // Submitted queries at last report
-  AtomicInteger queryIndex = new AtomicInteger(-1); // Current query index for sequential execution
-
-  /**
-   * Starts periodic progress reporting that runs every 5 seconds. Reports include total and
-   * incremental metrics for throughput and failure rates.
-   *
-   * @param d Start time of the stress test for calculating elapsed time
-   */
-  private void startReporting(Instant d) {
-
-    timer.schedule(
-        new TimerTask() {
-          /**
-           * Periodic reporting task that calculates and displays progress metrics. Runs every 5
-           * seconds to show current throughput, failure rates, and elapsed time.
-           */
-          public void run() {
-            final Instant now = Instant.now();
-            final long msElapsed = now.toEpochMilli() - d.toEpochMilli();
-            final int successful = successfulCounter.get();
-            final int failures = failureCounter.get();
-            final int submitted = submittedCounter.get();
-            final int index = queryIndex.get();
-
-            // Calculate incremental metrics since last report
-            final long successfulThisRun = successful - successfulLastRun;
-            successfulLastRun = successful;
-            final long secondsElapsed = (msElapsed - durationLastRun) / 1000;
-            durationLastRun = msElapsed;
-            final int failuresThisRun = failures - failuresLastRun;
-            failuresLastRun = failures;
-            final int submittedThisRun = submitted - submittedLastRun;
-            submittedLastRun = submitted;
-
-            // Print progress report with current and total metrics
-            System.out.printf(
-                "%s - queries submitted (total): %d; queries successful (total): %d; queries"
-                    + " successful per second (current phase): %.2f; failure rate: %.2f %% (current"
-                    + " phase) - time elapsed: %s/%s - last query index: %d%n",
-                Instant.now(),
-                submitted,
-                successful,
-                (float) successfulThisRun / secondsElapsed,
-                ((float) failuresThisRun / submittedThisRun) * 100.0,
-                Human.getHumanDurationFromMillis(msElapsed),
-                Human.getHumanDurationFromMillis(durationTargetMS),
-                index);
-          }
-        },
-        5 * 1000, // Initial delay: 5 seconds
-        5 * 1000); // Repeat interval: 5 seconds
-  }
+  // Progress reporting
+  private final StressReporter reporter;
+  private final AtomicInteger queryIndex =
+      new AtomicInteger(-1); // Current query index for sequential execution
 
   /**
    * Loads and parses the stress configuration from the JSON file.
@@ -274,7 +213,7 @@ public class StressExec {
       try {
         Instant startTime = Instant.now();
         DremioApiResponse response = null;
-        submittedCounter.incrementAndGet();
+        reporter.incrementSubmittedCounter();
 
         // Execute the SQL query with its context
         response = dremioApi.runSQL(mappedSql.getQueryText(), mappedSql.getContext());
@@ -293,12 +232,11 @@ public class StressExec {
         // Track successful execution timing
         Instant endTime = Instant.now();
         long queryTime = endTime.toEpochMilli() - startTime.toEpochMilli();
-        totalDurationMS.addAndGet(queryTime);
-        successfulCounter.incrementAndGet();
+        reporter.incrementSuccessfulCounter(queryTime);
         logger.info(() -> String.format("query %s successful", mappedSql));
       } catch (final Exception e) {
         // Track failed execution
-        failureCounter.incrementAndGet();
+        reporter.incrementFailureCounter();
         logger.info(
             () ->
                 String.format(
@@ -520,7 +458,7 @@ public class StressExec {
 
       // Initialize query index for sequential execution
       if (queriesSequence == QueriesSequence.SEQUENTIAL) {
-        queryIndex = new AtomicInteger(this.queryIndexForRestart);
+        queryIndex.set(this.queryIndexForRestart);
       }
 
       // Create thread pool for concurrent query execution
@@ -530,7 +468,7 @@ public class StressExec {
 
       // Start timing and progress reporting
       final Instant d = Instant.now();
-      startReporting(d);
+      reporter.startReporting(d);
 
       try {
         // Start background monitoring for completion conditions
@@ -567,7 +505,7 @@ public class StressExec {
             // Create a runnable task that executes the query asynchronously
             final Runnable runnable = () -> runQuery(dremioApi, mappedSql);
             executorService.submit(runnable);
-            counter.incrementAndGet();
+            reporter.incrementCounter();
           }
 
           // Throttle submission if queue becomes too large
@@ -583,7 +521,7 @@ public class StressExec {
         throw new RuntimeException(e);
       } finally {
         // Clean up resources
-        timer.cancel();
+        reporter.stopReporting();
         executorService.shutdown();
       }
     } catch (IOException e) {
@@ -619,12 +557,6 @@ public class StressExec {
                 // Check completion conditions: time limit reached OR all queries processed
                 // (sequential mode)
                 if (msElapsed > durationTargetMS || queryIndex.get() + 1 >= numQueries) {
-                  final int submitted = submittedCounter.get();
-                  final int successful = successfulCounter.get();
-                  final int failures = failureCounter.get();
-                  final int index = queryIndex.get();
-                  final long secondsElapsed = msElapsed / 1000;
-
                   try {
                     Thread.sleep(5 * 1000); // Allow final queries to complete
                   } catch (InterruptedException e) {
@@ -632,18 +564,7 @@ public class StressExec {
                   }
 
                   // Print final summary report
-                  System.out.printf(
-                      "%s - Stress Summary: queries submitted: %d; queries successful: %d; queries"
-                          + " successful per second: %.2f; failure rate: %.2f %% - time elapsed:"
-                          + " %s/%s - last query index: %d%n",
-                      Instant.now(),
-                      submitted,
-                      successful,
-                      (float) submitted / secondsElapsed,
-                      ((float) failures / submitted) * 100.0,
-                      Human.getHumanDurationFromMillis(msElapsed),
-                      Human.getHumanDurationFromMillis(durationTargetMS),
-                      index);
+                  reporter.printFinalSummary(d);
 
                   // Force shutdown of executor service
                   executorService.shutdownNow();
