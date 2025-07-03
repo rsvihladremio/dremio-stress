@@ -29,13 +29,9 @@ import java.util.logging.Logger;
 public abstract class AbstractDremioJDBCDriver implements DremioApi {
 
   private final Connection connection;
-  /**
-   * Lock for synchronizing access to currentContext.
-   */
+  /** Lock for synchronizing access to currentContext. */
   private final Object currentContextLock = new Object();
-  /**
-   * Stores the current SQL context (e.g., "schema.table").
-   */
+  /** Stores the current SQL context (e.g., "schema.table"). */
   private String currentContext = "";
 
   /**
@@ -57,7 +53,7 @@ public abstract class AbstractDremioJDBCDriver implements DremioApi {
    *
    * @param url The JDBC connection URL.
    * @throws RuntimeException if the JDBC driver class is not found or if a connection cannot be
-   *                          established.
+   *     established.
    */
   protected AbstractDremioJDBCDriver(String url) {
     try {
@@ -77,15 +73,15 @@ public abstract class AbstractDremioJDBCDriver implements DremioApi {
    * Runs a SQL statement over JDBC. This method handles setting the SQL context if it has changed
    * since the last execution.
    *
-   * @param sql   The SQL string to submit to Dremio.
+   * @param sql The SQL string to submit to Dremio.
    * @param table A collection of strings representing the path to the table (e.g., schema, table
-   *              name). If null or empty, no context is set.
+   *     name). If null or empty, no context is set.
    * @return A {@link DremioApiResponse} indicating the success or failure of the SQL execution.
-   * @throws IOException      This exception is part of the {@link DremioApi} interface. In this
-   *                          JDBC-based implementation, actual {@link SQLException}s are typically
-   *                          wrapped in a {@link RuntimeException}.
+   * @throws IOException This exception is part of the {@link DremioApi} interface. In this
+   *     JDBC-based implementation, actual {@link SQLException}s are typically wrapped in a {@link
+   *     RuntimeException}.
    * @throws RuntimeException if a {@link SQLException} occurs during JDBC operations, or if an
-   *                          unexpected state is encountered.
+   *     unexpected state is encountered.
    */
   @Override
   public DremioApiResponse runSQL(String sql, Collection<String> table) throws IOException {
