@@ -30,7 +30,7 @@ docker run -it -v $(pwd):/mnt ghcr.io/rsvihladremio/dremio-stress:0.4.0 dremio-s
 ```
 
 ## Run via Legacy JDBC 
-
+Note: Running the Dremio Legacy JDBC driver on newer JDK versions requires setting the parameter `--add-opens=java.base/java.nio=ALL-UNNAMED`, e.g. via running `export _JAVA_OPTIONS='--add-opens=java.base/java.nio=ALL-UNNAMED'`
 
 ### Run via Docker
 
